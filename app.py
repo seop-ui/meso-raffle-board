@@ -240,12 +240,12 @@ html, body, [class*="css"] {
 
 .feature-card {
     min-height: 488px;
-    padding: 18px 10px 16px 10px;
+    padding: 18px 20px 10px 10px;
 }
 
 .prize-card {
     min-height: 198px;
-    padding: 12px 10px 12px 10px;
+    padding: 12px 20px 12px 10px;
 }
 
 .title {
@@ -276,7 +276,7 @@ html, body, [class*="css"] {
     align-items: baseline;
     justify-content: center;
     gap: 3px;
-    margin-top: 0;
+    margin-top: 10;
     margin-bottom: 10px;
 }
 
