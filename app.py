@@ -2,32 +2,22 @@ import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-st.set_page_config(
-    page_title="Raffle Prize Board",
-    layout="wide",
-)
+st.set_page_config(page_title="Raffle Prize Board", layout="wide")
 
-# ---------------------------------
 # 5초마다 자동 새로고침
-# ---------------------------------
 st_autorefresh(interval=5_000, key="raffle_refresh")
 
-# ---------------------------------
 # Google Sheets CSV URL
-# ---------------------------------
 sheet_url = "https://docs.google.com/spreadsheets/d/1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk/export?format=csv"
 
+# 시트 읽기
 df = pd.read_csv(sheet_url)
 raw_df = pd.read_csv(sheet_url, header=None)
 
-# ---------------------------------
 # 불필요한 Unnamed 컬럼 제거
-# ---------------------------------
 df = df.loc[:, ~df.columns.astype(str).str.contains("^Unnamed")]
 
-# ---------------------------------
 # 값 정리
-# ---------------------------------
 for col in ["Qty", "Winners", "Available"]:
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
 
@@ -35,9 +25,7 @@ df["Place"] = df["Place"].astype(str).str.strip()
 df["Prize"] = df["Prize"].astype(str).str.strip()
 df["Odds"] = df["Odds"].astype(str).str.strip()
 
-# ---------------------------------
 # K2 셀 읽기
-# ---------------------------------
 default_how_to = (
     "1. 이벤트 대상 시술 결제\n"
     "2. 응모권 수령\n"
@@ -54,9 +42,7 @@ except Exception:
 
 how_to_html = how_to_text.replace("\n", "<br>")
 
-# ---------------------------------
-# 시트에서 경품 데이터 찾기
-# ---------------------------------
+# 경품 데이터 찾기
 def get_prize(place, prize):
     row = df[(df["Place"] == place) & (df["Prize"] == prize)]
 
@@ -79,48 +65,39 @@ def get_prize(place, prize):
         "sold_out": available <= 0,
     }
 
-# ---------------------------------
-# 카드 클래스 결정
-# ---------------------------------
 def get_card_class(item, large=False):
     base = "big-card" if large else "card"
-
     if item["sold_out"]:
         return f"{base} soldout-card"
     if item["available"] <= 2:
         return f"{base} low-card"
     return base
 
-# ---------------------------------
-# 카드 HTML 생성
-# ---------------------------------
 def render_card(title, item, large=False):
-    card_class = get_card_class(item, large=large)
+    card_class = get_card_class(item, large)
 
     if item["sold_out"]:
         qty_block = '<div class="soldout-text">SOLD OUT</div>'
         odds_block = '<div class="soldout-sub">No chance left</div>'
     else:
-        qty_block = f"""
-        <div class="qty-wrap">
-            <div class="qty-main">{item['available']}</div>
-            <div class="qty-sub">of {item['qty']}</div>
-        </div>
-        """
+        qty_block = (
+            '<div class="qty-wrap">'
+            f'<div class="qty-main">{item["available"]}</div>'
+            f'<div class="qty-sub">of {item["qty"]}</div>'
+            '</div>'
+        )
         odds_block = f'<div class="odds">{item["odds"]}</div>'
 
-    return f"""
-    <div class="{card_class}">
-        <div class="prize">{title}</div>
-        {qty_block}
-        <div class="odds-label">Odds</div>
-        {odds_block}
-    </div>
-    """
+    return (
+        f'<div class="{card_class}">'
+        f'<div class="prize">{title}</div>'
+        f'{qty_block}'
+        f'<div class="odds-label">Odds</div>'
+        f'{odds_block}'
+        f'</div>'
+    )
 
-# ---------------------------------
-# 각 경품 데이터 연결
-# ---------------------------------
+# 데이터 연결
 hair = get_prize("Single", "Laser Hair Removal (1 Session)")
 facial = get_prize("Single", "Custom Korean Facial (1 Session)")
 
@@ -134,9 +111,7 @@ free_sylfirm = get_prize("Free", "SylfirmX RF Microneedling")
 free_oligio = get_prize("Free", "Oligio Lifting")
 free_ultherapy = get_prize("Free", "Ultherapy Prime")
 
-# ---------------------------------
 # 스타일
-# ---------------------------------
 st.markdown("""
 <style>
 html, body, [class*="css"] {
@@ -325,19 +300,15 @@ html, body, [class*="css"] {
     .main-title {
         font-size: 46px;
     }
-
     .qty-main {
         font-size: 42px;
     }
-
     .prize {
         font-size: 18px;
     }
-
     .odds {
         font-size: 24px;
     }
-
     .info-box {
         font-size: 22px;
     }
@@ -345,71 +316,50 @@ html, body, [class*="css"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------
 # 제목
-# ---------------------------------
 st.markdown('<div class="main-title">래플 이벤트 경품 현황판</div>', unsafe_allow_html=True)
 
-# ---------------------------------
-# 왼쪽 큰 카드
-# ---------------------------------
-left = f"""
-<div class="left">
-    {render_card("Hair Removal Prize", hair, large=True)}
-    {render_card("Facial Prize", facial, large=True)}
-</div>
-"""
+# HTML 조각
+left_html = (
+    '<div class="left">'
+    + render_card("Hair Removal Prize", hair, large=True)
+    + render_card("Facial Prize", facial, large=True)
+    + '</div>'
+)
 
-# ---------------------------------
-# 80% Off 그룹
-# ---------------------------------
-group1 = f"""
-<div class="group">
-    <div class="group-title">80% Off MeSO Signature Treatment</div>
-    <div class="grid">
-        {render_card("BB Laser", off_bb)}
-        {render_card("SylfirmX RF Microneedling", off_sylfirm)}
-        {render_card("Oligio Lifting", off_oligio)}
-        {render_card("Ultherapy Prime", off_ultherapy)}
-    </div>
-</div>
-"""
+group1_html = (
+    '<div class="group">'
+    '<div class="group-title">80% Off MeSO Signature Treatment</div>'
+    '<div class="grid">'
+    + render_card("BB Laser", off_bb)
+    + render_card("SylfirmX RF Microneedling", off_sylfirm)
+    + render_card("Oligio Lifting", off_oligio)
+    + render_card("Ultherapy Prime", off_ultherapy)
+    + '</div></div>'
+)
 
-# ---------------------------------
-# Free 그룹
-# ---------------------------------
-group2 = f"""
-<div class="group">
-    <div class="group-title">Free MeSO Signature Treatment</div>
-    <div class="grid">
-        {render_card("BB Laser", free_bb)}
-        {render_card("SylfirmX RF Microneedling", free_sylfirm)}
-        {render_card("Oligio Lifting", free_oligio)}
-        {render_card("Ultherapy Prime", free_ultherapy)}
-    </div>
-</div>
-"""
+group2_html = (
+    '<div class="group">'
+    '<div class="group-title">Free MeSO Signature Treatment</div>'
+    '<div class="grid">'
+    + render_card("BB Laser", free_bb)
+    + render_card("SylfirmX RF Microneedling", free_sylfirm)
+    + render_card("Oligio Lifting", free_oligio)
+    + render_card("Ultherapy Prime", free_ultherapy)
+    + '</div></div>'
+)
 
-# ---------------------------------
-# 보드 렌더링
-# ---------------------------------
-st.markdown(f"""
-<div class="board">
-    {left}
-    <div class="right">
-        {group1}
-        {group2}
-    </div>
-</div>
-""", unsafe_allow_html=True)
+board_html = (
+    '<div class="board">'
+    + left_html
+    + '<div class="right">'
+    + group1_html
+    + group2_html
+    + '</div></div>'
+)
 
-# ---------------------------------
+st.markdown(board_html, unsafe_allow_html=True)
+
 # 참여방법
-# ---------------------------------
 st.markdown('<div class="info-title">이벤트 참여방법</div>', unsafe_allow_html=True)
-
-st.markdown(f"""
-<div class="info-box">
-{how_to_html}
-</div>
-""", unsafe_allow_html=True)
+st.markdown(f'<div class="info-box">{how_to_html}</div>', unsafe_allow_html=True)
