@@ -278,7 +278,7 @@ html, body, [class*="css"] {
 
 .prize-card .title {
     min-height: 50px;
-    font-size: 15px;
+    font-size: 18px;
     line-height: 1.12;
 }
 
@@ -471,7 +471,7 @@ group1_html = (
     '<div class="group-title">80% Off MeSO Signature Treatment</div>'
     '<div class="group-grid">'
     + render_card("BB Laser", off_bb)
-    + render_card("SylfirmX RF Microneedling", off_sylfirm)
+    + render_card("SylfirmX RF", off_sylfirm)
     + render_card("Oligio Lifting", off_oligio)
     + render_card("Ultherapy Prime", off_ultherapy)
     + '</div></div>'
@@ -482,7 +482,7 @@ group2_html = (
     '<div class="group-title">Free MeSO Signature Treatment</div>'
     '<div class="group-grid">'
     + render_card("BB Laser", free_bb)
-    + render_card("SylfirmX RF Microneedling", free_sylfirm)
+    + render_card("SylfirmX RF", free_sylfirm)
     + render_card("Oligio Lifting", free_oligio)
     + render_card("Ultherapy Prime", free_ultherapy)
     + '</div></div>'
