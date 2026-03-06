@@ -2,7 +2,10 @@ import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-st.set_page_config(page_title="Raffle Prize Board", layout="wide")
+st.set_page_config(
+    page_title="Raffle Prize Board",
+    layout="wide",
+)
 
 # 5초마다 자동 새로고침
 st_autorefresh(interval=5_000, key="raffle_refresh")
@@ -41,6 +44,14 @@ except Exception:
     how_to_text = default_how_to
 
 how_to_html = how_to_text.replace("\n", "<br>")
+
+# Ball Count 읽기 (I2 기준: row index 1, col index 8)
+try:
+    ball_count = int(pd.to_numeric(raw_df.iloc[1, 8], errors="coerce"))
+    if ball_count <= 0:
+        ball_count = 200
+except Exception:
+    ball_count = 200
 
 # 경품 데이터 찾기
 def get_prize(place, prize):
@@ -111,44 +122,103 @@ free_sylfirm = get_prize("Free", "SylfirmX RF Microneedling")
 free_oligio = get_prize("Free", "Oligio Lifting")
 free_ultherapy = get_prize("Free", "Ultherapy Prime")
 
+# 요약 수치 계산
+total_prizes_left = int(df["Available"].sum())
+win_chance = round((total_prizes_left / ball_count) * 100, 2) if ball_count > 0 else 0
+lose_count = max(ball_count - total_prizes_left, 0)
+lose_chance = round((lose_count / ball_count) * 100, 2) if ball_count > 0 else 0
+
+def summary_box(label, value, sub=""):
+    sub_html = f'<div class="summary-sub">{sub}</div>' if sub else ""
+    return (
+        '<div class="summary-card">'
+        f'<div class="summary-label">{label}</div>'
+        f'<div class="summary-value">{value}</div>'
+        f'{sub_html}'
+        '</div>'
+    )
+
 # 스타일
 st.markdown("""
 <style>
 html, body, [class*="css"] {
-    background-color: #f7f7f5;
-    color: #1f3341;
+    background-color: #F7F7F5;
+    color: #3B4F38;
 }
 
 .block-container {
-    max-width: 1820px;
-    padding-top: 1.2rem;
-    padding-bottom: 2.2rem;
+    max-width: 1360px;
+    padding-top: 0.8rem;
+    padding-bottom: 1.8rem;
 }
 
 .main-title {
     text-align: center;
-    font-size: 58px;
+    font-size: 52px;
+    font-weight: 900;
+    margin: 8px 0 26px 0;
+    color: #3B4F38;
+    letter-spacing: -0.8px;
+}
+
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.summary-card {
+    border: 3px solid #3B4F38;
+    background: #FFFFFF;
+    border-radius: 18px;
+    padding: 16px 14px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(59, 79, 56, 0.06);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.summary-label {
+    font-size: 16px;
     font-weight: 800;
-    margin: 8px 0 42px 0;
-    color: #1b2230;
-    letter-spacing: -0.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6B7867;
+    margin-bottom: 8px;
+}
+
+.summary-value {
+    font-size: 38px;
+    font-weight: 900;
+    line-height: 1.05;
+    color: #3B4F38;
+}
+
+.summary-sub {
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 6px;
+    color: #7A8675;
 }
 
 .board {
     display: flex;
-    gap: 28px;
+    gap: 18px;
     align-items: stretch;
 }
 
 .left {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     width: 25%;
 }
 
 .right {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     width: 75%;
 }
 
@@ -157,56 +227,56 @@ html, body, [class*="css"] {
 }
 
 .group-title {
-    border: 3px solid #22384a;
-    background: #ffffff;
+    border: 3px solid #3B4F38;
+    background: #CFD4C2;
     text-align: center;
-    padding: 14px 12px;
-    font-size: 24px;
-    font-weight: 800;
-    margin-bottom: 12px;
-    color: #1f3341;
-    border-radius: 12px;
+    padding: 12px 10px;
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 10px;
+    color: #3B4F38;
+    border-radius: 14px;
     letter-spacing: -0.2px;
 }
 
 .grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    gap: 12px;
 }
 
 .card, .big-card {
-    border: 3px solid #22384a;
-    background: #ffffff;
+    border: 3px solid #3B4F38;
+    background: #FFFFFF;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #1f3341;
+    color: #3B4F38;
     box-sizing: border-box;
-    border-radius: 16px;
-    box-shadow: 0 4px 14px rgba(15, 30, 45, 0.05);
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(59, 79, 56, 0.05);
 }
 
 .card {
-    min-height: 220px;
-    padding: 16px 12px;
+    min-height: 210px;
+    padding: 14px 10px;
 }
 
 .big-card {
-    min-height: 332px;
+    min-height: 286px;
     width: 50%;
-    padding: 22px 16px;
+    padding: 18px 14px;
 }
 
 .prize {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 18px;
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 16px;
     text-align: center;
-    padding: 0 8px;
-    line-height: 1.3;
-    min-height: 58px;
+    padding: 0 6px;
+    line-height: 1.28;
+    min-height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -217,52 +287,52 @@ html, body, [class*="css"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .qty-main {
-    font-size: 54px;
+    font-size: 50px;
     font-weight: 900;
     line-height: 1;
     letter-spacing: -1px;
 }
 
 .qty-sub {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 17px;
+    font-weight: 700;
     margin-top: 6px;
-    color: #5b6b79;
+    color: #6E7A69;
 }
 
 .odds-label {
-    font-size: 16px;
-    color: #6b7a88;
-    margin-bottom: 6px;
+    font-size: 14px;
+    color: #70806B;
+    margin-bottom: 5px;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    font-weight: 700;
+    letter-spacing: 1px;
+    font-weight: 900;
 }
 
 .odds {
-    font-size: 30px;
-    font-weight: 800;
+    font-size: 28px;
+    font-weight: 900;
     line-height: 1.1;
 }
 
 .low-card {
-    background: #fff6da;
-    border-color: #c89000;
+    background: #F8F5F2;
+    border-color: #3B4F38;
 }
 
 .soldout-card {
-    background: #eceff3;
-    border-color: #8a96a3;
-    color: #5f6975;
+    background: #ECEEE8;
+    border-color: #9AA694;
+    color: #6B7566;
     box-shadow: none;
 }
 
 .soldout-text {
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 900;
     letter-spacing: 0.6px;
     line-height: 1.1;
@@ -270,47 +340,59 @@ html, body, [class*="css"] {
 }
 
 .soldout-sub {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
 }
 
 .info-title {
     text-align: center;
-    font-size: 34px;
-    font-weight: 800;
-    margin-top: 48px;
-    margin-bottom: 16px;
-    color: #1b2230;
+    font-size: 30px;
+    font-weight: 900;
+    margin-top: 34px;
+    margin-bottom: 12px;
+    color: #3B4F38;
     letter-spacing: -0.3px;
 }
 
 .info-box {
-    border: 3px solid #22384a;
-    background: #ffffff;
-    padding: 30px 34px;
-    font-size: 28px;
+    border: 3px solid #3B4F38;
+    background: #FFFFFF;
+    padding: 26px 28px;
+    font-size: 18px;
     margin-top: 8px;
-    line-height: 1.9;
-    color: #1f3341;
+    line-height: 1.95;
+    color: #3B4F38;
     border-radius: 18px;
-    box-shadow: 0 4px 14px rgba(15, 30, 45, 0.05);
+    box-shadow: 0 4px 14px rgba(59, 79, 56, 0.05);
 }
 
-@media (max-width: 1400px) {
-    .main-title {
-        font-size: 46px;
+@media (max-width: 1180px) {
+    .block-container {
+        max-width: 1100px;
     }
-    .qty-main {
+
+    .summary-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .main-title {
         font-size: 42px;
     }
-    .prize {
-        font-size: 18px;
+
+    .board {
+        flex-direction: column;
     }
-    .odds {
-        font-size: 24px;
+
+    .left, .right {
+        width: 100%;
     }
-    .info-box {
-        font-size: 22px;
+
+    .group {
+        width: 50%;
+    }
+
+    .qty-main {
+        font-size: 42px;
     }
 }
 </style>
@@ -318,6 +400,17 @@ html, body, [class*="css"] {
 
 # 제목
 st.markdown('<div class="main-title">래플 이벤트 경품 현황판</div>', unsafe_allow_html=True)
+
+# 요약 카드
+summary_html = (
+    '<div class="summary-row">'
+    + summary_box("Total Prizes Left", total_prizes_left, "remaining prizes")
+    + summary_box("Win Chance", f"{win_chance:.2f}%", "current overall odds")
+    + summary_box("Lose Chance", f"{lose_chance:.2f}%", "miss probability")
+    + summary_box("Ball Count", ball_count, "fixed total balls")
+    + '</div>'
+)
+st.markdown(summary_html, unsafe_allow_html=True)
 
 # HTML 조각
 left_html = (
