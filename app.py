@@ -142,9 +142,9 @@ html, body, [class*="css"] {
 /* 제목 */
 .main-title {
     text-align: center;
-    font-size: 72px;
+    font-size: 64px;
     font-weight: 900;
-    letter-spacing: -1.6px;
+    letter-spacing: -1.4px;
     line-height: 1.02;
     margin: 0 0 24px 0;
     color: #3B4F38;
@@ -162,7 +162,7 @@ html, body, [class*="css"] {
     border: 2.5px solid #3B4F38;
     background: rgba(255,255,255,0.92);
     border-radius: 20px;
-    min-height: 118px;
+    min-height: 108px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -224,7 +224,7 @@ html, body, [class*="css"] {
     justify-content: center;
     text-align: center;
     padding: 10px 14px;
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 900;
     line-height: 1.15;
     margin-bottom: 10px;
@@ -253,7 +253,7 @@ html, body, [class*="css"] {
 }
 
 .feature-card {
-    min-height: 498px;
+    min-height: 540px;
     padding: 14px 12px 16px 12px;
 }
 
@@ -290,6 +290,7 @@ html, body, [class*="css"] {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding-top: 6px;
 }
 
 .value-row {
