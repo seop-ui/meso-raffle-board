@@ -504,11 +504,19 @@ board_html = (
 
 st.markdown(board_html, unsafe_allow_html=True)
 
+import base64
+
+def get_base64_image(image_path: str) -> str:
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+
+logo_base64 = get_base64_image("logo_grin_04.png")
+
 st.markdown(
-"""
-<div style="display:flex; justify-content:center; margin-top:30px; margin-bottom:10px;">
-    <img src="logo_grin_04.png" width="230">
-</div>
-""",
-unsafe_allow_html=True
+    f"""
+    <div style="display:flex; justify-content:center; margin-top:30px; margin-bottom:10px;">
+        <img src="data:image/png;base64,{logo_base64}" width="230" style="opacity:0.9;" />
+    </div>
+    """,
+    unsafe_allow_html=True
 )
