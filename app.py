@@ -125,72 +125,77 @@ html, body, [class*="css"] {
 }
 
 .block-container {
-    max-width: 1180px;
-    padding-top: 0.5rem;
-    padding-bottom: 1.2rem;
+    max-width: 1450px;
+    padding-top: 0.2rem;
+    padding-bottom: 0.4rem;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
 }
 
 .main-title {
     text-align: center;
-    font-size: 40px;
+    font-size: 76px;
     font-weight: 900;
-    margin: 10px 0 18px 0;
+    margin: 6px 0 18px 0;
     color: #3B4F38;
-    letter-spacing: -0.8px;
+    letter-spacing: -1.4px;
+    line-height: 1.05;
 }
 
 .summary-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
     margin-bottom: 14px;
 }
 
 .summary-card {
     border: 3px solid #3B4F38;
     background: #FFFFFF;
-    border-radius: 14px;
-    min-height: 92px;
+    border-radius: 16px;
+    min-height: 126px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    box-shadow: none;
-    padding: 10px 8px;
+    padding: 12px 10px;
+    box-sizing: border-box;
 }
 
 .summary-label {
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0.8px;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
     line-height: 1.1;
+    text-align: center;
 }
 
 .summary-value {
-    font-size: 28px;
+    font-size: 52px;
     font-weight: 900;
     line-height: 1;
+    text-align: center;
 }
 
 .board {
     display: grid;
-    grid-template-columns: 274px minmax(0, 1fr);
-    gap: 14px;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 16px;
     align-items: start;
 }
 
 .left-column {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 14px;
 }
 
 .right-column {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 14px;
 }
 
 .group {
@@ -200,29 +205,30 @@ html, body, [class*="css"] {
 .group-title {
     border: 3px solid #3B4F38;
     background: #CFD4C2;
-    border-radius: 12px;
-    min-height: 64px;
+    border-radius: 14px;
+    min-height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 8px 10px;
-    font-size: 17px;
+    padding: 8px 12px;
+    font-size: 22px;
     font-weight: 900;
     line-height: 1.15;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
 }
 
 .group-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
 }
 
 .feature-card, .prize-card {
     border: 3px solid #3B4F38;
     background: #FFFFFF;
-    border-radius: 16px;
+    border-radius: 18px;
     width: 100%;
     box-sizing: border-box;
     color: #3B4F38;
@@ -230,99 +236,99 @@ html, body, [class*="css"] {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    box-shadow: none;
 }
 
 .feature-card {
-    min-height: 330px;
-    padding: 18px 10px 14px 10px;
+    min-height: 534px;
+    padding: 18px 10px 16px 10px;
 }
 
 .prize-card {
-    min-height: 146px;
-    padding: 10px 8px 10px 8px;
+    min-height: 208px;
+    padding: 12px 10px 12px 10px;
 }
 
 .title {
     width: 100%;
-    min-height: 76px;
+    min-height: 110px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 0 8px;
-    font-size: 18px;
-    font-weight: 800;
-    line-height: 1.18;
+    padding: 0 10px;
+    font-size: 21px;
+    font-weight: 900;
+    line-height: 1.2;
     word-break: keep-all;
     overflow-wrap: anywhere;
+    box-sizing: border-box;
 }
 
 .prize-card .title {
-    min-height: 54px;
-    font-size: 15px;
-    line-height: 1.15;
+    min-height: 66px;
+    font-size: 17px;
+    line-height: 1.18;
 }
 
 .value-row {
-    min-height: 82px;
+    min-height: 116px;
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 2px;
-    margin-top: 4px;
+    gap: 4px;
+    margin-top: 2px;
     margin-bottom: 8px;
 }
 
 .feature-card .value {
-    font-size: 44px;
+    font-size: 64px;
     font-weight: 900;
     line-height: 1;
 }
 
 .prize-card .value {
-    font-size: 38px;
+    font-size: 54px;
     font-weight: 900;
     line-height: 1;
 }
 
 .qty-line {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 26px;
+    font-weight: 800;
     line-height: 1;
 }
 
 .feature-card .qty-line {
-    font-size: 18px;
+    font-size: 30px;
 }
 
 .odds-label {
-    min-height: 20px;
+    min-height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 900;
-    letter-spacing: 1px;
+    letter-spacing: 1.2px;
     line-height: 1;
     margin-top: auto;
 }
 
 .odds-row {
-    min-height: 34px;
+    min-height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .odds-value {
-    font-size: 24px;
+    font-size: 34px;
     font-weight: 900;
     line-height: 1;
 }
 
 .prize-card .odds-value {
-    font-size: 20px;
+    font-size: 28px;
 }
 
 .low-card {
@@ -336,23 +342,27 @@ html, body, [class*="css"] {
 }
 
 .soldout-main {
-    font-size: 22px !important;
+    font-size: 28px !important;
     line-height: 1.1;
     text-align: center;
 }
 
 .soldout-sub {
-    font-size: 14px !important;
+    font-size: 16px !important;
     font-weight: 800;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
     .block-container {
-        max-width: 960px;
+        max-width: 1120px;
     }
 
     .main-title {
-        font-size: 34px;
+        font-size: 56px;
+    }
+
+    .summary-row {
+        grid-template-columns: 1fr;
     }
 
     .board {
@@ -367,8 +377,12 @@ html, body, [class*="css"] {
         grid-template-columns: 1fr;
     }
 
-    .summary-row {
-        grid-template-columns: 1fr;
+    .feature-card {
+        min-height: 420px;
+    }
+
+    .summary-value {
+        font-size: 42px;
     }
 }
 </style>
@@ -390,8 +404,8 @@ st.markdown(summary_html, unsafe_allow_html=True)
 # 왼쪽 카드
 left_html = (
     '<div class="left-column">'
-    + render_card("Hair Removal Prize", hair, large=True)
-    + render_card("Korean Facial Prize", facial, large=True)
+    + render_card("Hair Removal (1 session)", hair, large=True)
+    + render_card("Korean Facial (1 session)", facial, large=True)
     + '</div>'
 )
 
