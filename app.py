@@ -36,7 +36,6 @@ try:
 except Exception:
     ball_count = 200
 
-# 경품 데이터 찾기
 def get_prize(place, prize):
     row = df[(df["Place"] == place) & (df["Prize"] == prize)]
 
@@ -121,7 +120,6 @@ win_chance = round((total_prizes_left / ball_count) * 100, 2) if ball_count > 0 
 lose_count = max(ball_count - total_prizes_left, 0)
 lose_chance = round((lose_count / ball_count) * 100, 2) if ball_count > 0 else 0
 
-# 스타일
 st.markdown("""
 <style>
 html, body, [class*="css"] {
@@ -139,7 +137,6 @@ html, body, [class*="css"] {
     padding-right: 1.6rem;
 }
 
-/* 제목 */
 .main-title {
     text-align: center;
     font-size: 64px;
@@ -155,7 +152,7 @@ html, body, [class*="css"] {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 }
 
 .summary-card {
@@ -202,23 +199,28 @@ html, body, [class*="css"] {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
+    align-items: stretch;
 }
 
+/* 오른쪽은 두 그룹이 같은 높이를 가지도록 */
 .right-column {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
+    align-items: start;
 }
 
 .group {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .group-title {
     border: 2.5px solid #3B4F38;
     background: #CFD4C2;
     border-radius: 16px;
-    min-height: 72px;
+    height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -230,12 +232,15 @@ html, body, [class*="css"] {
     margin-bottom: 10px;
     box-sizing: border-box;
     color: #32452F;
+    flex: 0 0 72px;
 }
 
+/* 카드 2행 높이를 강제로 동일하게 */
 .group-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+    grid-auto-rows: 188px;
 }
 
 /* 카드 공통 */
@@ -253,12 +258,13 @@ html, body, [class*="css"] {
 }
 
 .feature-card {
-    min-height: 540px;
+    /* 그룹 타이틀 72 + margin-bottom 10 + 카드2행(188*2) + gap 12 = 470 */
+    height: 470px;
     padding: 14px 12px 16px 12px;
 }
 
 .prize-card {
-    min-height: 212px;
+    height: 188px;
     padding: 10px 10px 12px 10px;
 }
 
@@ -280,9 +286,9 @@ html, body, [class*="css"] {
 }
 
 .prize-card .title {
-    min-height: 64px;
-    font-size: 17px;
-    line-height: 1.16;
+    min-height: 58px;
+    font-size: 16px;
+    line-height: 1.14;
 }
 
 .value-zone {
@@ -290,7 +296,7 @@ html, body, [class*="css"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 6px;
+    padding-top: 4px;
 }
 
 .value-row {
@@ -309,7 +315,7 @@ html, body, [class*="css"] {
 }
 
 .prize-card .value {
-    font-size: 78px;
+    font-size: 74px;
     font-weight: 900;
     line-height: 0.95;
     letter-spacing: -1.5px;
@@ -330,12 +336,21 @@ html, body, [class*="css"] {
     margin-top: 14px;
 }
 
+.prize-card .qty-line {
+    font-size: 34px;
+    margin-top: 8px;
+}
+
 .odds-zone {
     min-height: 84px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+.prize-card .odds-zone {
+    min-height: 54px;
 }
 
 .odds-label {
@@ -346,6 +361,11 @@ html, body, [class*="css"] {
     text-transform: uppercase;
     margin-bottom: 8px;
     color: #5A6B57;
+}
+
+.prize-card .odds-label {
+    font-size: 12px;
+    margin-bottom: 6px;
 }
 
 .odds-row {
@@ -362,7 +382,7 @@ html, body, [class*="css"] {
 }
 
 .prize-card .odds-value {
-    font-size: 31px;
+    font-size: 25px;
 }
 
 /* 상태 */
@@ -388,7 +408,6 @@ html, body, [class*="css"] {
     font-weight: 800;
 }
 
-/* 반응형 */
 @media (max-width: 1180px) {
     .block-container {
         max-width: 1120px;
@@ -416,7 +435,7 @@ html, body, [class*="css"] {
     }
 
     .feature-card {
-        min-height: 430px;
+        height: 430px;
     }
 
     .summary-value {
@@ -434,10 +453,8 @@ html, body, [class*="css"] {
 </style>
 """, unsafe_allow_html=True)
 
-# 제목
 st.markdown('<div class="main-title">Raffle Event Prize Board</div>', unsafe_allow_html=True)
 
-# 요약 카드
 summary_html = (
     '<div class="summary-row">'
     + summary_box("Total Prizes Left", total_prizes_left)
@@ -447,7 +464,6 @@ summary_html = (
 )
 st.markdown(summary_html, unsafe_allow_html=True)
 
-# 왼쪽 카드
 left_html = (
     '<div class="left-column">'
     + render_card("Hair Removal (1 session)", hair, large=True)
@@ -455,7 +471,6 @@ left_html = (
     + '</div>'
 )
 
-# 오른쪽 그룹
 group1_html = (
     '<div class="group">'
     '<div class="group-title">80% Off MeSO Signature Treatment</div>'
