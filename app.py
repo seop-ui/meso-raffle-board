@@ -504,9 +504,11 @@ board_html = (
 
 st.markdown(board_html, unsafe_allow_html=True)
 
-st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
-
-col1, col2, col3 = st.columns([1.2, 1.6, 1.2])
-
-with col2:
-    st.image("logo_grin_04.png", width=220)
+st.markdown(
+"""
+<div style="display:flex; justify-content:center; margin-top:30px; margin-bottom:10px;">
+    <img src="logo_grin_04.png" width="220">
+</div>
+""",
+unsafe_allow_html=True
+)
