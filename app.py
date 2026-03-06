@@ -514,7 +514,7 @@ logo_base64 = get_base64_image("logo_grin_04.png")
 
 st.markdown(
     f"""
-    <div style="display:flex; justify-content:center; margin-top:30px; margin-bottom:10px;">
+    <div style="display:flex; justify-content:center; margin-top:60px; margin-bottom:10px;">
         <img src="data:image/png;base64,{logo_base64}" width="230" style="opacity:0.9;" />
     </div>
     """,
