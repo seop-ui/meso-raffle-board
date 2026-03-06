@@ -28,7 +28,7 @@ df["Place"] = df["Place"].astype(str).str.strip()
 df["Prize"] = df["Prize"].astype(str).str.strip()
 df["Odds"] = df["Odds"].astype(str).str.strip()
 
-# Ball Count 읽기 (I2 기준)
+# Ball Count 읽기
 try:
     ball_count = int(pd.to_numeric(raw_df.iloc[1, 8], errors="coerce"))
     if ball_count <= 0:
@@ -76,7 +76,7 @@ def render_card(title, item, large=False):
         odds_value = '<div class="odds-value soldout-sub">0%</div>'
     else:
         main_value = f'<div class="value">{item["available"]}</div>'
-        qty_line = f'<div class="qty-line">/ {item["qty"]}</div>'
+        qty_line = f'<div class="qty-line">/{item["qty"]}</div>'
         odds_value = f'<div class="odds-value">{item["odds"]}</div>'
 
     return (
@@ -125,35 +125,35 @@ html, body, [class*="css"] {
 }
 
 .block-container {
-    max-width: 1450px;
-    padding-top: 0.2rem;
-    padding-bottom: 0.4rem;
-    padding-left: 0.4rem;
-    padding-right: 0.4rem;
+    max-width: 1380px;
+    padding-top: 2.0rem;
+    padding-bottom: 2.0rem;
+    padding-left: 2.0rem;
+    padding-right: 2.0rem;
 }
 
 .main-title {
     text-align: center;
-    font-size: 76px;
+    font-size: 72px;
     font-weight: 900;
-    margin: 6px 0 18px 0;
+    margin: 0 0 24px 0;
     color: #3B4F38;
-    letter-spacing: -1.4px;
-    line-height: 1.05;
+    letter-spacing: -1.2px;
+    line-height: 1.04;
 }
 
 .summary-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
-    margin-bottom: 14px;
+    margin-bottom: 18px;
 }
 
 .summary-card {
     border: 3px solid #3B4F38;
     background: #FFFFFF;
     border-radius: 16px;
-    min-height: 126px;
+    min-height: 118px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -163,17 +163,17 @@ html, body, [class*="css"] {
 }
 
 .summary-label {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 900;
-    letter-spacing: 1px;
+    letter-spacing: 0.9px;
     text-transform: uppercase;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     line-height: 1.1;
     text-align: center;
 }
 
 .summary-value {
-    font-size: 52px;
+    font-size: 48px;
     font-weight: 900;
     line-height: 1;
     text-align: center;
@@ -181,7 +181,7 @@ html, body, [class*="css"] {
 
 .board {
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: 350px minmax(0, 1fr);
     gap: 16px;
     align-items: start;
 }
@@ -206,13 +206,13 @@ html, body, [class*="css"] {
     border: 3px solid #3B4F38;
     background: #CFD4C2;
     border-radius: 14px;
-    min-height: 72px;
+    min-height: 70px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 8px 12px;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 900;
     line-height: 1.15;
     margin-bottom: 10px;
@@ -239,67 +239,67 @@ html, body, [class*="css"] {
 }
 
 .feature-card {
-    min-height: 534px;
+    min-height: 488px;
     padding: 18px 10px 16px 10px;
 }
 
 .prize-card {
-    min-height: 208px;
+    min-height: 198px;
     padding: 12px 10px 12px 10px;
 }
 
 .title {
     width: 100%;
-    min-height: 110px;
+    min-height: 112px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 0 10px;
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 900;
-    line-height: 1.2;
+    line-height: 1.18;
     word-break: keep-all;
     overflow-wrap: anywhere;
     box-sizing: border-box;
 }
 
 .prize-card .title {
-    min-height: 66px;
+    min-height: 64px;
     font-size: 17px;
-    line-height: 1.18;
+    line-height: 1.15;
 }
 
 .value-row {
-    min-height: 116px;
+    min-height: 122px;
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 4px;
-    margin-top: 2px;
-    margin-bottom: 8px;
+    gap: 3px;
+    margin-top: 0;
+    margin-bottom: 10px;
 }
 
 .feature-card .value {
-    font-size: 64px;
+    font-size: 66px;
     font-weight: 900;
     line-height: 1;
 }
 
 .prize-card .value {
-    font-size: 54px;
+    font-size: 58px;
     font-weight: 900;
     line-height: 1;
 }
 
 .qty-line {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
     line-height: 1;
 }
 
 .feature-card .qty-line {
-    font-size: 30px;
+    font-size: 32px;
 }
 
 .odds-label {
@@ -309,26 +309,26 @@ html, body, [class*="css"] {
     justify-content: center;
     font-size: 15px;
     font-weight: 900;
-    letter-spacing: 1.2px;
+    letter-spacing: 1.1px;
     line-height: 1;
     margin-top: auto;
 }
 
 .odds-row {
-    min-height: 42px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .odds-value {
-    font-size: 34px;
+    font-size: 36px;
     font-weight: 900;
     line-height: 1;
 }
 
 .prize-card .odds-value {
-    font-size: 28px;
+    font-size: 30px;
 }
 
 .low-card {
@@ -342,7 +342,7 @@ html, body, [class*="css"] {
 }
 
 .soldout-main {
-    font-size: 28px !important;
+    font-size: 30px !important;
     line-height: 1.1;
     text-align: center;
 }
@@ -355,10 +355,11 @@ html, body, [class*="css"] {
 @media (max-width: 1180px) {
     .block-container {
         max-width: 1120px;
+        padding: 1.4rem;
     }
 
     .main-title {
-        font-size: 56px;
+        font-size: 54px;
     }
 
     .summary-row {
@@ -378,11 +379,11 @@ html, body, [class*="css"] {
     }
 
     .feature-card {
-        min-height: 420px;
+        min-height: 430px;
     }
 
     .summary-value {
-        font-size: 42px;
+        font-size: 40px;
     }
 }
 </style>
