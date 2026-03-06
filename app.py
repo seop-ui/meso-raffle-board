@@ -256,7 +256,7 @@ html, body, [class*="css"] {
     justify-content: center;
     text-align: center;
     padding: 0 10px;
-    font-size: 40px;
+    font-size: 20px;
     font-weight: 900;
     line-height: 1.18;
     word-break: keep-all;
