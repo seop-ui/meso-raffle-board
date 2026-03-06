@@ -71,20 +71,25 @@ def render_card(title, item, large=False):
     card_class = get_card_class(item, large)
 
     if item["sold_out"]:
-        main_value = '<div class="value soldout-main">SOLD OUT</div>'
-        qty_line = '<div class="qty-line soldout-sub">No chance left</div>'
+        value_block = '<div class="value soldout-main">SOLD OUT</div>'
         odds_value = '<div class="odds-value soldout-sub">0%</div>'
     else:
-        main_value = f'<div class="value">{item["available"]}</div>'
-        qty_line = f'<div class="qty-line">/{item["qty"]}</div>'
+        value_block = (
+            '<div class="value-row">'
+            f'<div class="value">{item["available"]}</div>'
+            f'<div class="qty-line">/{item["qty"]}</div>'
+            '</div>'
+        )
         odds_value = f'<div class="odds-value">{item["odds"]}</div>'
 
     return (
         f'<div class="{card_class}">'
         f'<div class="title">{title}</div>'
-        f'<div class="value-row">{main_value}{qty_line}</div>'
+        f'<div class="value-zone">{value_block}</div>'
+        f'<div class="odds-zone">'
         f'<div class="odds-label">ODDS</div>'
         f'<div class="odds-row">{odds_value}</div>'
+        f'</div>'
         f'</div>'
     )
 
@@ -122,66 +127,73 @@ st.markdown("""
 html, body, [class*="css"] {
     background-color: #F7F7F5;
     color: #3B4F38;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .block-container {
-    max-width: 1380px;
-    padding-top: 2.0rem;
-    padding-bottom: 2.0rem;
-    padding-left: 2.0rem;
-    padding-right: 2.0rem;
+    max-width: 1360px;
+    padding-top: 1.6rem;
+    padding-bottom: 1.6rem;
+    padding-left: 1.6rem;
+    padding-right: 1.6rem;
 }
 
+/* 제목 */
 .main-title {
     text-align: center;
     font-size: 72px;
     font-weight: 900;
+    letter-spacing: -1.6px;
+    line-height: 1.02;
     margin: 0 0 24px 0;
     color: #3B4F38;
-    letter-spacing: -1.2px;
-    line-height: 1.04;
 }
 
+/* 상단 요약 */
 .summary-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    gap: 16px;
     margin-bottom: 18px;
 }
 
 .summary-card {
-    border: 3px solid #3B4F38;
-    background: #FFFFFF;
-    border-radius: 16px;
+    border: 2.5px solid #3B4F38;
+    background: rgba(255,255,255,0.92);
+    border-radius: 20px;
     min-height: 118px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 12px 10px;
+    padding: 14px 10px;
     box-sizing: border-box;
 }
 
 .summary-label {
     font-size: 18px;
-    font-weight: 900;
+    font-weight: 800;
     letter-spacing: 0.9px;
     text-transform: uppercase;
     margin-bottom: 8px;
     line-height: 1.1;
     text-align: center;
+    color: #4C5E49;
 }
 
 .summary-value {
-    font-size: 48px;
+    font-size: 50px;
     font-weight: 900;
     line-height: 1;
     text-align: center;
+    color: #2F422C;
 }
 
+/* 메인 보드 */
 .board {
     display: grid;
-    grid-template-columns: 350px minmax(0, 1fr);
+    grid-template-columns: 360px minmax(0, 1fr);
     gap: 16px;
     align-items: start;
 }
@@ -203,20 +215,21 @@ html, body, [class*="css"] {
 }
 
 .group-title {
-    border: 3px solid #3B4F38;
+    border: 2.5px solid #3B4F38;
     background: #CFD4C2;
-    border-radius: 14px;
-    min-height: 70px;
+    border-radius: 16px;
+    min-height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 8px 12px;
+    padding: 10px 14px;
     font-size: 21px;
     font-weight: 900;
     line-height: 1.15;
     margin-bottom: 10px;
     box-sizing: border-box;
+    color: #32452F;
 }
 
 .group-grid {
@@ -225,97 +238,116 @@ html, body, [class*="css"] {
     gap: 12px;
 }
 
+/* 카드 공통 */
 .feature-card, .prize-card {
-    border: 3px solid #3B4F38;
-    background: #FFFFFF;
-    border-radius: 18px;
+    border: 2.5px solid #3B4F38;
+    background: rgba(255,255,255,0.94);
+    border-radius: 22px;
     width: 100%;
     box-sizing: border-box;
     color: #3B4F38;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-start;
 }
 
 .feature-card {
-    min-height: 488px;
-    padding: 18px 20px 10px 10px;
+    min-height: 498px;
+    padding: 14px 12px 16px 12px;
 }
 
 .prize-card {
-    min-height: 198px;
-    padding: 12px 20px 12px 10px;
+    min-height: 212px;
+    padding: 10px 10px 12px 10px;
 }
 
+/* 카드 안 3단 구조 */
 .title {
-    width: 100%;
-    min-height: 112px;
+    min-height: 108px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 0 10px;
-    font-size: 20px;
-    font-weight: 900;
+    font-size: 21px;
+    font-weight: 800;
     line-height: 1.18;
     word-break: keep-all;
     overflow-wrap: anywhere;
     box-sizing: border-box;
+    color: #32452F;
 }
 
 .prize-card .title {
     min-height: 64px;
     font-size: 17px;
-    line-height: 1.15;
+    line-height: 1.16;
 }
 
-.value-row {
-    min-height: 122px;
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 3px;
-    margin-top: 10;
-    margin-bottom: 10px;
-}
-
-.feature-card .value {
-    font-size: 66px;
-    font-weight: 900;
-    line-height: 1;
-}
-
-.prize-card .value {
-    font-size: 58px;
-    font-weight: 900;
-    line-height: 1;
-}
-
-.qty-line {
-    font-size: 28px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.feature-card .qty-line {
-    font-size: 32px;
-}
-
-.odds-label {
-    min-height: 24px;
+.value-zone {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+}
+
+.value-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+
+.feature-card .value {
+    font-size: 94px;
     font-weight: 900;
-    letter-spacing: 1.1px;
+    line-height: 0.95;
+    letter-spacing: -2px;
+    color: #3B4F38;
+}
+
+.prize-card .value {
+    font-size: 78px;
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -1.5px;
+    color: #3B4F38;
+}
+
+.qty-line {
+    font-size: 40px;
+    font-weight: 800;
     line-height: 1;
-    margin-top: auto;
+    letter-spacing: -0.8px;
+    margin-top: 10px;
+    color: #3B4F38;
+}
+
+.feature-card .qty-line {
+    font-size: 44px;
+    margin-top: 14px;
+}
+
+.odds-zone {
+    min-height: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.odds-label {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1.4px;
+    line-height: 1;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    color: #5A6B57;
 }
 
 .odds-row {
-    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -325,12 +357,14 @@ html, body, [class*="css"] {
     font-size: 36px;
     font-weight: 900;
     line-height: 1;
+    color: #2F422C;
 }
 
 .prize-card .odds-value {
-    font-size: 30px;
+    font-size: 31px;
 }
 
+/* 상태 */
 .low-card {
     background: #F8F5F2;
 }
@@ -345,6 +379,7 @@ html, body, [class*="css"] {
     font-size: 30px !important;
     line-height: 1.1;
     text-align: center;
+    font-weight: 900;
 }
 
 .soldout-sub {
@@ -352,10 +387,11 @@ html, body, [class*="css"] {
     font-weight: 800;
 }
 
+/* 반응형 */
 @media (max-width: 1180px) {
     .block-container {
         max-width: 1120px;
-        padding: 1.4rem;
+        padding: 1.2rem;
     }
 
     .main-title {
@@ -384,6 +420,14 @@ html, body, [class*="css"] {
 
     .summary-value {
         font-size: 40px;
+    }
+
+    .feature-card .value {
+        font-size: 78px;
+    }
+
+    .prize-card .value {
+        font-size: 66px;
     }
 }
 </style>
