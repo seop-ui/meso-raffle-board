@@ -17,10 +17,7 @@ st_autorefresh(interval=5_000, key="raffle_refresh")
 # ---------------------------------
 sheet_url = "https://docs.google.com/spreadsheets/d/1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk/export?format=csv"
 
-# 일반 표 형태로 읽기
 df = pd.read_csv(sheet_url)
-
-# K2 셀을 정확히 읽기 위해 raw 형태로 한 번 더 읽기
 raw_df = pd.read_csv(sheet_url, header=None)
 
 # ---------------------------------
@@ -40,15 +37,20 @@ df["Odds"] = df["Odds"].astype(str).str.strip()
 
 # ---------------------------------
 # K2 셀 읽기
-# K열 = 11번째 열 = index 10
-# 2행 = index 1
 # ---------------------------------
+default_how_to = (
+    "1. 이벤트 대상 시술 결제\n"
+    "2. 응모권 수령\n"
+    "3. 추첨기 참여\n"
+    "4. 당첨 시 직원 안내 후 경품 수령"
+)
+
 try:
     how_to_text = str(raw_df.iloc[1, 10]).strip()
     if how_to_text.lower() == "nan" or how_to_text == "":
-        how_to_text = "1. 이벤트 대상 시술 결제\n2. 응모권 수령\n3. 추첨기 참여\n4. 당첨 시 직원 안내 후 경품 수령"
+        how_to_text = default_how_to
 except Exception:
-    how_to_text = "1. 이벤트 대상 시술 결제\n2. 응모권 수령\n3. 추첨기 참여\n4. 당첨 시 직원 안내 후 경품 수령"
+    how_to_text = default_how_to
 
 how_to_html = how_to_text.replace("\n", "<br>")
 
@@ -78,30 +80,43 @@ def get_prize(place, prize):
     }
 
 # ---------------------------------
-# 표시 문자열
+# 카드 클래스 결정
 # ---------------------------------
-def qty_html(item):
-    if item["sold_out"]:
-        return '<div class="qty soldout-text">SOLD OUT</div>'
-    return f'''
-    <div class="qty-wrap">
-        <div class="qty-main">{item["available"]}</div>
-        <div class="qty-sub">of {item["qty"]}</div>
-    </div>
-    '''
-
-def odds_html(item):
-    if item["sold_out"]:
-        return '<div class="odds soldout-sub">No chance left</div>'
-    return f'<div class="odds">{item["odds"]}</div>'
-
-def card_class(item, large=False):
+def get_card_class(item, large=False):
     base = "big-card" if large else "card"
+
     if item["sold_out"]:
         return f"{base} soldout-card"
     if item["available"] <= 2:
         return f"{base} low-card"
     return base
+
+# ---------------------------------
+# 카드 HTML 생성
+# ---------------------------------
+def render_card(title, item, large=False):
+    card_class = get_card_class(item, large=large)
+
+    if item["sold_out"]:
+        qty_block = '<div class="soldout-text">SOLD OUT</div>'
+        odds_block = '<div class="soldout-sub">No chance left</div>'
+    else:
+        qty_block = f"""
+        <div class="qty-wrap">
+            <div class="qty-main">{item['available']}</div>
+            <div class="qty-sub">of {item['qty']}</div>
+        </div>
+        """
+        odds_block = f'<div class="odds">{item["odds"]}</div>'
+
+    return f"""
+    <div class="{card_class}">
+        <div class="prize">{title}</div>
+        {qty_block}
+        <div class="odds-label">Odds</div>
+        {odds_block}
+    </div>
+    """
 
 # ---------------------------------
 # 각 경품 데이터 연결
@@ -131,7 +146,7 @@ html, body, [class*="css"] {
 
 .block-container {
     max-width: 1820px;
-    padding-top: 1.4rem;
+    padding-top: 1.2rem;
     padding-bottom: 2.2rem;
 }
 
@@ -216,7 +231,7 @@ html, body, [class*="css"] {
     text-align: center;
     padding: 0 8px;
     line-height: 1.3;
-    min-height: 52px;
+    min-height: 58px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -226,6 +241,7 @@ html, body, [class*="css"] {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     margin-bottom: 10px;
 }
 
@@ -309,15 +325,19 @@ html, body, [class*="css"] {
     .main-title {
         font-size: 46px;
     }
+
     .qty-main {
         font-size: 42px;
     }
+
     .prize {
         font-size: 18px;
     }
+
     .odds {
         font-size: 24px;
     }
+
     .info-box {
         font-size: 22px;
     }
@@ -335,21 +355,8 @@ st.markdown('<div class="main-title">래플 이벤트 경품 현황판</div>', u
 # ---------------------------------
 left = f"""
 <div class="left">
-
-<div class="{card_class(hair, large=True)}">
-<div class="prize">Hair Removal Prize</div>
-{qty_html(hair)}
-<div class="odds-label">Odds</div>
-{odds_html(hair)}
-</div>
-
-<div class="{card_class(facial, large=True)}">
-<div class="prize">Facial Prize</div>
-{qty_html(facial)}
-<div class="odds-label">Odds</div>
-{odds_html(facial)}
-</div>
-
+    {render_card("Hair Removal Prize", hair, large=True)}
+    {render_card("Facial Prize", facial, large=True)}
 </div>
 """
 
@@ -358,39 +365,13 @@ left = f"""
 # ---------------------------------
 group1 = f"""
 <div class="group">
-<div class="group-title">80% Off MeSO Signature Treatment</div>
-
-<div class="grid">
-
-<div class="{card_class(off_bb)}">
-<div class="prize">BB Laser</div>
-{qty_html(off_bb)}
-<div class="odds-label">Odds</div>
-{odds_html(off_bb)}
-</div>
-
-<div class="{card_class(off_sylfirm)}">
-<div class="prize">SylfirmX RF Microneedling</div>
-{qty_html(off_sylfirm)}
-<div class="odds-label">Odds</div>
-{odds_html(off_sylfirm)}
-</div>
-
-<div class="{card_class(off_oligio)}">
-<div class="prize">Oligio Lifting</div>
-{qty_html(off_oligio)}
-<div class="odds-label">Odds</div>
-{odds_html(off_oligio)}
-</div>
-
-<div class="{card_class(off_ultherapy)}">
-<div class="prize">Ultherapy Prime</div>
-{qty_html(off_ultherapy)}
-<div class="odds-label">Odds</div>
-{odds_html(off_ultherapy)}
-</div>
-
-</div>
+    <div class="group-title">80% Off MeSO Signature Treatment</div>
+    <div class="grid">
+        {render_card("BB Laser", off_bb)}
+        {render_card("SylfirmX RF Microneedling", off_sylfirm)}
+        {render_card("Oligio Lifting", off_oligio)}
+        {render_card("Ultherapy Prime", off_ultherapy)}
+    </div>
 </div>
 """
 
@@ -399,39 +380,13 @@ group1 = f"""
 # ---------------------------------
 group2 = f"""
 <div class="group">
-<div class="group-title">Free MeSO Signature Treatment</div>
-
-<div class="grid">
-
-<div class="{card_class(free_bb)}">
-<div class="prize">BB Laser</div>
-{qty_html(free_bb)}
-<div class="odds-label">Odds</div>
-{odds_html(free_bb)}
-</div>
-
-<div class="{card_class(free_sylfirm)}">
-<div class="prize">SylfirmX RF Microneedling</div>
-{qty_html(free_sylfirm)}
-<div class="odds-label">Odds</div>
-{odds_html(free_sylfirm)}
-</div>
-
-<div class="{card_class(free_oligio)}">
-<div class="prize">Oligio Lifting</div>
-{qty_html(free_oligio)}
-<div class="odds-label">Odds</div>
-{odds_html(free_oligio)}
-</div>
-
-<div class="{card_class(free_ultherapy)}">
-<div class="prize">Ultherapy Prime</div>
-{qty_html(free_ultherapy)}
-<div class="odds-label">Odds</div>
-{odds_html(free_ultherapy)}
-</div>
-
-</div>
+    <div class="group-title">Free MeSO Signature Treatment</div>
+    <div class="grid">
+        {render_card("BB Laser", free_bb)}
+        {render_card("SylfirmX RF Microneedling", free_sylfirm)}
+        {render_card("Oligio Lifting", free_oligio)}
+        {render_card("Ultherapy Prime", free_ultherapy)}
+    </div>
 </div>
 """
 
@@ -440,16 +395,16 @@ group2 = f"""
 # ---------------------------------
 st.markdown(f"""
 <div class="board">
-{left}
-<div class="right">
-{group1}
-{group2}
-</div>
+    {left}
+    <div class="right">
+        {group1}
+        {group2}
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ---------------------------------
-# 참여방법 (K2 셀 문구)
+# 참여방법
 # ---------------------------------
 st.markdown('<div class="info-title">이벤트 참여방법</div>', unsafe_allow_html=True)
 
