@@ -112,7 +112,13 @@ free_sylfirm = get_prize("Free", "SylfirmX RF Microneedling")
 free_oligio = get_prize("Free", "Oligio Lifting")
 free_ultherapy = get_prize("Free", "Ultherapy Prime")
 
-total_prizes_left = int(df["Available"].sum())
+detail_df = df[
+    df["Prize"].notna() &
+    (df["Prize"].astype(str).str.strip() != "") &
+    (df["Place"].astype(str).str.strip() != "합계")
+]
+
+total_prizes_left = int(detail_df["Available"].sum())
 win_chance = round((total_prizes_left / ball_count) * 100, 2) if ball_count > 0 else 0
 lose_count = max(ball_count - total_prizes_left, 0)
 lose_chance = round((lose_count / ball_count) * 100, 2) if ball_count > 0 else 0
