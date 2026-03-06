@@ -163,7 +163,7 @@ html, body, [class*="css"] {
 
 .summary-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
     margin-bottom: 24px;
 }
@@ -179,6 +179,7 @@ html, body, [class*="css"] {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    min-width: 0;
 }
 
 .summary-label {
@@ -205,25 +206,28 @@ html, body, [class*="css"] {
 }
 
 .board {
-    display: flex;
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
     gap: 18px;
-    align-items: stretch;
+    align-items: start;
 }
 
 .left {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 16px;
-    width: 25%;
+    min-width: 0;
 }
 
 .right {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
-    width: 75%;
+    min-width: 0;
 }
 
 .group {
-    width: 50%;
+    min-width: 0;
 }
 
 .group-title {
@@ -241,7 +245,7 @@ html, body, [class*="css"] {
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -256,6 +260,8 @@ html, body, [class*="css"] {
     box-sizing: border-box;
     border-radius: 18px;
     box-shadow: 0 4px 14px rgba(59, 79, 56, 0.05);
+    min-width: 0;
+    width: 100%;
 }
 
 .card {
@@ -265,7 +271,7 @@ html, body, [class*="css"] {
 
 .big-card {
     min-height: 286px;
-    width: 50%;
+    width: 100%;
     padding: 18px 14px;
 }
 
@@ -280,6 +286,8 @@ html, body, [class*="css"] {
     display: flex;
     align-items: center;
     justify-content: center;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
 }
 
 .qty-wrap {
@@ -372,7 +380,7 @@ html, body, [class*="css"] {
     }
 
     .summary-row {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .main-title {
@@ -380,15 +388,19 @@ html, body, [class*="css"] {
     }
 
     .board {
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 
-    .left, .right {
-        width: 100%;
+    .left {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .right {
+        grid-template-columns: 1fr;
     }
 
     .group {
-        width: 50%;
+        width: 100%;
     }
 
     .qty-main {
