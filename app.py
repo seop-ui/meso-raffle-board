@@ -507,7 +507,7 @@ st.markdown(board_html, unsafe_allow_html=True)
 st.markdown(
 """
 <div style="display:flex; justify-content:center; margin-top:30px; margin-bottom:10px;">
-    <img src="logo_grin_04.png" width="220">
+    <img src="logo_grin_04.png" width="230">
 </div>
 """,
 unsafe_allow_html=True
