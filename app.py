@@ -7,20 +7,15 @@ st.set_page_config(
     layout="wide",
 )
 
-# 5초마다 자동 새로고침
 st_autorefresh(interval=5_000, key="raffle_refresh")
 
-# Google Sheets CSV URL
 sheet_url = "https://docs.google.com/spreadsheets/d/1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk/export?format=csv"
 
-# 시트 읽기
 df = pd.read_csv(sheet_url)
 raw_df = pd.read_csv(sheet_url, header=None)
 
-# 불필요한 Unnamed 컬럼 제거
 df = df.loc[:, ~df.columns.astype(str).str.contains("^Unnamed")]
 
-# 값 정리
 for col in ["Qty", "Winners", "Available"]:
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
 
@@ -28,13 +23,13 @@ df["Place"] = df["Place"].astype(str).str.strip()
 df["Prize"] = df["Prize"].astype(str).str.strip()
 df["Odds"] = df["Odds"].astype(str).str.strip()
 
-# Ball Count 읽기
 try:
     ball_count = int(pd.to_numeric(raw_df.iloc[1, 8], errors="coerce"))
     if ball_count <= 0:
         ball_count = 200
 except Exception:
     ball_count = 200
+
 
 def get_prize(place, prize):
     row = df[(df["Place"] == place) & (df["Prize"] == prize)]
@@ -58,6 +53,7 @@ def get_prize(place, prize):
         "sold_out": available <= 0,
     }
 
+
 def get_card_class(item, large=False):
     base = "feature-card" if large else "prize-card"
     if item["sold_out"]:
@@ -65,6 +61,7 @@ def get_card_class(item, large=False):
     if item["available"] <= 2:
         return f"{base} low-card"
     return base
+
 
 def render_card(title, item, large=False):
     card_class = get_card_class(item, large)
@@ -92,6 +89,7 @@ def render_card(title, item, large=False):
         f'</div>'
     )
 
+
 def summary_box(label, value):
     return (
         '<div class="summary-card">'
@@ -100,7 +98,7 @@ def summary_box(label, value):
         '</div>'
     )
 
-# 데이터 연결
+
 hair = get_prize("Single", "Laser Hair Removal (1 Session)")
 facial = get_prize("Single", "Custom Korean Facial (1 Session)")
 
@@ -114,7 +112,6 @@ free_sylfirm = get_prize("Free", "SylfirmX RF Microneedling")
 free_oligio = get_prize("Free", "Oligio Lifting")
 free_ultherapy = get_prize("Free", "Ultherapy Prime")
 
-# 요약 수치 계산
 total_prizes_left = int(df["Available"].sum())
 win_chance = round((total_prizes_left / ball_count) * 100, 2) if ball_count > 0 else 0
 lose_count = max(ball_count - total_prizes_left, 0)
@@ -147,7 +144,6 @@ html, body, [class*="css"] {
     color: #3B4F38;
 }
 
-/* 상단 요약 */
 .summary-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -187,7 +183,6 @@ html, body, [class*="css"] {
     color: #2F422C;
 }
 
-/* 메인 보드 */
 .board {
     display: grid;
     grid-template-columns: 360px minmax(0, 1fr);
@@ -202,7 +197,6 @@ html, body, [class*="css"] {
     align-items: stretch;
 }
 
-/* 오른쪽은 두 그룹이 같은 높이를 가지도록 */
 .right-column {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -235,15 +229,13 @@ html, body, [class*="css"] {
     flex: 0 0 72px;
 }
 
-/* 카드 2행 높이를 강제로 동일하게 */
 .group-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-    grid-auto-rows: 188px;
+    grid-auto-rows: 176px;
 }
 
-/* 카드 공통 */
 .feature-card, .prize-card {
     border: 2.5px solid #3B4F38;
     background: rgba(255,255,255,0.94);
@@ -255,30 +247,29 @@ html, body, [class*="css"] {
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
+    overflow: hidden;
 }
 
 .feature-card {
-    /* 그룹 타이틀 72 + margin-bottom 10 + 카드2행(188*2) + gap 12 = 470 */
-    height: 470px;
-    padding: 14px 12px 16px 12px;
+    height: 446px;
+    padding: 12px 10px 14px 10px;
 }
 
 .prize-card {
-    height: 188px;
-    padding: 10px 10px 12px 10px;
+    height: 176px;
+    padding: 8px 8px 10px 8px;
 }
 
-/* 카드 안 3단 구조 */
 .title {
-    min-height: 108px;
+    min-height: 96px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 0 10px;
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 800;
-    line-height: 1.18;
+    line-height: 1.16;
     word-break: keep-all;
     overflow-wrap: anywhere;
     box-sizing: border-box;
@@ -286,9 +277,9 @@ html, body, [class*="css"] {
 }
 
 .prize-card .title {
-    min-height: 58px;
-    font-size: 16px;
-    line-height: 1.14;
+    min-height: 50px;
+    font-size: 15px;
+    line-height: 1.12;
 }
 
 .value-zone {
@@ -296,18 +287,20 @@ html, body, [class*="css"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 4px;
+    padding-top: 2px;
+    min-height: 0;
 }
 
 .value-row {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
+    min-width: 0;
 }
 
 .feature-card .value {
-    font-size: 94px;
+    font-size: 86px;
     font-weight: 900;
     line-height: 0.95;
     letter-spacing: -2px;
@@ -315,77 +308,79 @@ html, body, [class*="css"] {
 }
 
 .prize-card .value {
-    font-size: 74px;
+    font-size: 62px;
     font-weight: 900;
     line-height: 0.95;
-    letter-spacing: -1.5px;
+    letter-spacing: -1.2px;
     color: #3B4F38;
 }
 
 .qty-line {
-    font-size: 40px;
+    font-size: 36px;
     font-weight: 800;
     line-height: 1;
-    letter-spacing: -0.8px;
-    margin-top: 10px;
+    letter-spacing: -0.6px;
+    margin-top: 8px;
     color: #3B4F38;
 }
 
 .feature-card .qty-line {
-    font-size: 44px;
-    margin-top: 14px;
+    font-size: 38px;
+    margin-top: 12px;
 }
 
 .prize-card .qty-line {
-    font-size: 34px;
-    margin-top: 8px;
+    font-size: 24px;
+    margin-top: 6px;
 }
 
 .odds-zone {
-    min-height: 84px;
+    min-height: 76px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    flex: 0 0 76px;
 }
 
 .prize-card .odds-zone {
-    min-height: 54px;
+    min-height: 42px;
+    flex: 0 0 42px;
 }
 
 .odds-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 900;
-    letter-spacing: 1.4px;
+    letter-spacing: 1.2px;
     line-height: 1;
     text-transform: uppercase;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: #5A6B57;
 }
 
 .prize-card .odds-label {
-    font-size: 12px;
-    margin-bottom: 6px;
+    font-size: 11px;
+    margin-bottom: 4px;
 }
 
 .odds-row {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 0;
 }
 
 .odds-value {
-    font-size: 36px;
+    font-size: 34px;
     font-weight: 900;
     line-height: 1;
     color: #2F422C;
 }
 
 .prize-card .odds-value {
-    font-size: 25px;
+    font-size: 18px;
 }
 
-/* 상태 */
 .low-card {
     background: #F8F5F2;
 }
@@ -397,14 +392,14 @@ html, body, [class*="css"] {
 }
 
 .soldout-main {
-    font-size: 30px !important;
+    font-size: 28px !important;
     line-height: 1.1;
     text-align: center;
     font-weight: 900;
 }
 
 .soldout-sub {
-    font-size: 16px !important;
+    font-size: 14px !important;
     font-weight: 800;
 }
 
@@ -435,7 +430,7 @@ html, body, [class*="css"] {
     }
 
     .feature-card {
-        height: 430px;
+        height: 410px;
     }
 
     .summary-value {
@@ -443,11 +438,11 @@ html, body, [class*="css"] {
     }
 
     .feature-card .value {
-        font-size: 78px;
+        font-size: 76px;
     }
 
     .prize-card .value {
-        font-size: 66px;
+        font-size: 58px;
     }
 }
 </style>
