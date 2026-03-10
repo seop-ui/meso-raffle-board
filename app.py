@@ -21,8 +21,7 @@ NUMBERS_1_SECONDS = 5
 NUMBERS_2_SECONDS = 5
 CYCLE_SECONDS = BOARD_SECONDS + NUMBERS_1_SECONDS + NUMBERS_2_SECONDS
 
-now_ts = time.time()
-t = int(now_ts) % CYCLE_SECONDS
+t = int(time.time()) % CYCLE_SECONDS
 
 if t < BOARD_SECONDS:
     page = "board"
@@ -225,16 +224,6 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
         (number_df["Number"] >= start_num) & (number_df["Number"] <= end_num)
     ].sort_values("Number")
 
-    winners_df = page_df[
-        page_df["Winning Status"].apply(normalize_status) == "winner"
-    ].copy()
-
-    highlighted_number = None
-    if not winners_df.empty:
-        hero_index = int(now_ts * 1.25) % len(winners_df)
-        hero_row = winners_df.iloc[hero_index]
-        highlighted_number = int(hero_row["Number"])
-
     st.markdown(f'<div class="main-title">{title_text}</div>', unsafe_allow_html=True)
 
     rows_html = ""
@@ -254,11 +243,16 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
                 status_text = safe_text(matched.iloc[0]["Winning Status"])
                 status_norm = normalize_status(status_text)
 
+            has_prize = prize_text != ""
+            is_winner = status_norm == "winner"
+
             classes = ["tv-cell"]
-            if status_norm == "winner":
-                classes.append("winner-cell")
-            if highlighted_number is not None and n == highlighted_number:
-                classes.append("active-winner-cell")
+
+            if has_prize and not is_winner:
+                classes.append("prize-active-cell")
+
+            if is_winner:
+                classes.append("winner-done-cell")
 
             cell_html = (
                 f'<div class="{" ".join(classes)}">'
@@ -275,16 +269,6 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
 
     board_html = f'<div class="tv-grid-board">{rows_html}</div>'
     st.markdown(board_html, unsafe_allow_html=True)
-
-    if highlighted_number is not None:
-        st.markdown(
-            (
-                '<div class="draw-effect-bar">'
-                f'<span class="draw-effect-text">NOW HIGHLIGHTING WINNING BALL #{highlighted_number}</span>'
-                '</div>'
-            ),
-            unsafe_allow_html=True,
-        )
 
 
 # =========================================================
@@ -693,36 +677,33 @@ html, body, [class*="css"] {
     min-height: 14px;
 }
 
-.winner-cell {
-    background: radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(255,255,255,0) 35%), linear-gradient(180deg, #E6F1DE 0%, #D9EAD0 100%);
-}
-
-.winner-cell .tv-number {
-    color: #1F351D;
-}
-
-.winner-cell .tv-status {
-    color: #234720;
-}
-
-.active-winner-cell {
+/* 경품이 남아 있는 칸: 기존 winner 효과를 여기로 이동 */
+.prize-active-cell {
     border: 3px solid #2F422C !important;
     z-index: 3;
     transform: scale(1.03);
     box-shadow: 0 0 0 4px rgba(207, 220, 194, 0.85), 0 0 32px rgba(101, 142, 90, 0.45);
-    animation: activeWinnerPop 1.2s ease-in-out infinite;
+    animation: activePrizePop 1.6s ease-in-out infinite;
+    background:
+        radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(255,255,255,0) 35%),
+        linear-gradient(180deg, #E6F1DE 0%, #D9EAD0 100%);
 }
 
-.active-winner-cell .cell-shine {
+.prize-active-cell .cell-shine {
     opacity: 1;
-    animation: sweepShine 1.3s linear infinite;
+    animation: sweepShine 1.8s linear infinite;
 }
 
-.active-winner-cell .tv-number {
+.prize-active-cell .tv-number {
     font-size: 38px;
+    color: #1F351D;
 }
 
-.active-winner-cell::after {
+.prize-active-cell .tv-status {
+    color: #234720;
+}
+
+.prize-active-cell::after {
     content: "★";
     position: absolute;
     top: 6px;
@@ -730,28 +711,41 @@ html, body, [class*="css"] {
     font-size: 18px;
     font-weight: 900;
     color: #2F422C;
-    animation: twinkle 0.9s ease-in-out infinite;
+    animation: twinkle 1.1s ease-in-out infinite;
 }
 
-.draw-effect-bar {
-    margin-top: 16px;
-    border: 2px solid #3B4F38;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #EAF2E1 0%, #F9FBF7 50%, #EAF2E1 100%);
-    padding: 10px 18px;
-    overflow: hidden;
-    white-space: nowrap;
-    position: relative;
-    text-align: center;
+/* 이미 당첨된 번호: 효과 제거 + 회색 처리 */
+.winner-done-cell {
+    background: linear-gradient(180deg, #E3E5E0 0%, #D6D9D2 100%);
+    border-color: #B3BBB0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    animation: none !important;
 }
 
-.draw-effect-text {
-    display: inline-block;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    color: #2F422C;
-    animation: marqueeGlow 2s ease-in-out infinite;
+.winner-done-cell .cell-shine {
+    opacity: 0 !important;
+    animation: none !important;
+}
+
+.winner-done-cell .tv-number {
+    color: #5F695C;
+    font-size: 34px;
+}
+
+.winner-done-cell .tv-prize {
+    color: #667063;
+}
+
+.winner-done-cell .tv-status {
+    color: #7A8477;
+}
+
+.logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 56px;
+    margin-bottom: 8px;
 }
 
 .load-error-box {
@@ -765,19 +759,12 @@ html, body, [class*="css"] {
     background: #FFF7F7;
 }
 
-.logo-wrap {
-    display: flex;
-    justify-content: center;
-    margin-top: 56px;
-    margin-bottom: 8px;
-}
-
 @keyframes sweepShine {
     0% { left: -120%; }
     100% { left: 155%; }
 }
 
-@keyframes activeWinnerPop {
+@keyframes activePrizePop {
     0%, 100% { transform: scale(1.03); }
     50% { transform: scale(1.06); }
 }
@@ -785,11 +772,6 @@ html, body, [class*="css"] {
 @keyframes twinkle {
     0%, 100% { transform: scale(0.9); opacity: 0.7; }
     50% { transform: scale(1.2); opacity: 1; }
-}
-
-@keyframes marqueeGlow {
-    0%, 100% { letter-spacing: 1px; opacity: 0.95; }
-    50% { letter-spacing: 1.6px; opacity: 1; }
 }
 
 @media (max-width: 1180px) {
