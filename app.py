@@ -340,7 +340,7 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .number-page {
-    height: calc(100vh - 56px);
+    height: calc(100vh - 64px);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -348,7 +348,7 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .number-title {
-    font-size: 38px;
+    font-size: 34px;
     margin: 0 0 6px 0;
     line-height: 1.0;
     flex: 0 0 auto;
