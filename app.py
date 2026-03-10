@@ -13,9 +13,6 @@ st.set_page_config(
 
 # =========================================================
 # 미리보기용 자동 전환
-# 1) Prize Board      : 5초
-# 2) Prize Number 1~100 : 5초
-# 3) Prize Number 101~200 : 5초
 # =========================================================
 st_autorefresh(interval=1000, key="raffle_refresh")
 
@@ -36,7 +33,6 @@ else:
 
 # =========================================================
 # Google Sheets 설정
-# 시트 이름으로 직접 읽음
 # =========================================================
 SPREADSHEET_ID = "1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk"
 BOARD_SHEET_NAME = "Prize Board"
@@ -66,8 +62,7 @@ def load_board_data():
 
 @st.cache_data(ttl=2)
 def load_number_data():
-    number_df = pd.read_csv(NUMBER_URL)
-    return number_df
+    return pd.read_csv(NUMBER_URL)
 
 
 try:
@@ -170,13 +165,21 @@ def get_base64_image(image_path: str) -> str:
         return base64.b64encode(img_file.read()).decode()
 
 
-def normalize_status(value: str) -> str:
-    v = str(value).strip().lower()
-    return v
+def normalize_status(value) -> str:
+    if pd.isna(value):
+        return ""
+    return str(value).strip().lower()
+
+
+def safe_text(value) -> str:
+    if pd.isna(value):
+        return ""
+    text = str(value).strip()
+    return "" if text.lower() == "nan" else text
 
 
 # =========================================================
-# Prize Number 페이지 렌더링
+# Prize Number 페이지
 # =========================================================
 def render_number_page(start_num: int, end_num: int, title_text: str):
     try:
@@ -186,8 +189,7 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
             f"""
             <div class="main-title">{title_text}</div>
             <div class="load-error-box">
-                Prize Number 시트를 불러오지 못했습니다.<br>
-                {str(e)}
+                Prize Number 시트를 불러오지 못했습니다.<br>{str(e)}
             </div>
             """,
             unsafe_allow_html=True,
@@ -215,10 +217,9 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
     number_df["Number"] = pd.to_numeric(number_df["Number"], errors="coerce")
     number_df = number_df[number_df["Number"].notna()].copy()
     number_df["Number"] = number_df["Number"].astype(int)
-    number_df["Prize"] = number_df["Prize"].astype(str).fillna("").str.strip()
-    number_df["Winning Status"] = (
-        number_df["Winning Status"].astype(str).fillna("").str.strip()
-    )
+
+    number_df["Prize"] = number_df["Prize"].apply(safe_text)
+    number_df["Winning Status"] = number_df["Winning Status"].apply(safe_text)
 
     page_df = number_df[
         (number_df["Number"] >= start_num) & (number_df["Number"] <= end_num)
@@ -229,46 +230,18 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
     ].copy()
 
     highlighted_number = None
-    highlighted_prize = ""
-    highlighted_status = ""
-
     if not winners_df.empty:
         hero_index = int(now_ts * 1.25) % len(winners_df)
         hero_row = winners_df.iloc[hero_index]
         highlighted_number = int(hero_row["Number"])
-        highlighted_prize = str(hero_row["Prize"])
-        highlighted_status = str(hero_row["Winning Status"])
 
     st.markdown(f'<div class="main-title">{title_text}</div>', unsafe_allow_html=True)
 
-    if highlighted_number is not None:
-        hero_html = f"""
-        <div class="winner-hero">
-            <div class="winner-hero-glow"></div>
-            <div class="winner-hero-badge">WINNER SPOTLIGHT</div>
-            <div class="winner-hero-number">#{highlighted_number}</div>
-            <div class="winner-hero-prize">{highlighted_prize}</div>
-            <div class="winner-hero-status">{highlighted_status}</div>
-            <div class="winner-hero-spark spark-left"></div>
-            <div class="winner-hero-spark spark-right"></div>
-        </div>
-        """
-    else:
-        hero_html = """
-        <div class="winner-hero winner-hero-empty">
-            <div class="winner-hero-badge">PRIZE NUMBER</div>
-            <div class="winner-hero-number">READY</div>
-            <div class="winner-hero-prize">No winner marked on this page yet</div>
-            <div class="winner-hero-status">Waiting for draw result</div>
-        </div>
-        """
+    rows_html = ""
 
-    st.markdown(hero_html, unsafe_allow_html=True)
-
-    # 10x10 그리드
-    cells_html = ""
     for row_start in range(start_num, end_num + 1, 10):
         row_html = '<div class="tv-grid-row">'
+
         for n in range(row_start, row_start + 10):
             matched = page_df[page_df["Number"] == n]
 
@@ -277,40 +250,39 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
                 status_text = ""
                 status_norm = ""
             else:
-                prize_text = str(matched.iloc[0]["Prize"])
-                status_text = str(matched.iloc[0]["Winning Status"])
+                prize_text = safe_text(matched.iloc[0]["Prize"])
+                status_text = safe_text(matched.iloc[0]["Winning Status"])
                 status_norm = normalize_status(status_text)
 
             classes = ["tv-cell"]
-
             if status_norm == "winner":
                 classes.append("winner-cell")
-
             if highlighted_number is not None and n == highlighted_number:
                 classes.append("active-winner-cell")
 
-            display_status = status_text if status_text else ""
+            cell_html = (
+                f'<div class="{" ".join(classes)}">'
+                f'<div class="cell-shine"></div>'
+                f'<div class="tv-number">{n}</div>'
+                f'<div class="tv-prize">{prize_text}</div>'
+                f'<div class="tv-status">{status_text}</div>'
+                f'</div>'
+            )
+            row_html += cell_html
 
-            row_html += f"""
-            <div class="{' '.join(classes)}">
-                <div class="cell-shine"></div>
-                <div class="tv-number">{n}</div>
-                <div class="tv-prize">{prize_text}</div>
-                <div class="tv-status">{display_status}</div>
-            </div>
-            """
         row_html += "</div>"
-        cells_html += row_html
+        rows_html += row_html
 
-    st.markdown(f'<div class="tv-grid-board">{cells_html}</div>', unsafe_allow_html=True)
+    board_html = f'<div class="tv-grid-board">{rows_html}</div>'
+    st.markdown(board_html, unsafe_allow_html=True)
 
     if highlighted_number is not None:
         st.markdown(
-            f"""
-            <div class="draw-effect-bar">
-                <span class="draw-effect-text">NOW HIGHLIGHTING WINNING BALL #{highlighted_number}</span>
-            </div>
-            """,
+            (
+                '<div class="draw-effect-bar">'
+                f'<span class="draw-effect-text">NOW HIGHLIGHTING WINNING BALL #{highlighted_number}</span>'
+                '</div>'
+            ),
             unsafe_allow_html=True,
         )
 
@@ -632,107 +604,7 @@ html, body, [class*="css"] {
     font-weight: 800;
 }
 
-/* =====================================================
-   Prize Number TV Layout
-   ===================================================== */
-
-.winner-hero {
-    position: relative;
-    overflow: hidden;
-    border: 3px solid #3B4F38;
-    border-radius: 28px;
-    background:
-        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.85), rgba(255,255,255,0) 32%),
-        linear-gradient(135deg, #DDE7D3 0%, #F9FAF7 45%, #E9F3DE 100%);
-    padding: 24px 24px 22px 24px;
-    margin-bottom: 18px;
-    min-height: 190px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 10px 24px rgba(47, 66, 44, 0.12);
-    animation: heroPulse 2.2s ease-in-out infinite;
-}
-
-.winner-hero-empty {
-    background:
-        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9), rgba(255,255,255,0) 32%),
-        linear-gradient(135deg, #F3F5EE 0%, #FBFBF9 50%, #EEF2E7 100%);
-}
-
-.winner-hero-glow {
-    position: absolute;
-    inset: -30%;
-    background: conic-gradient(from 0deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,0.5) 90deg, rgba(255,255,255,0) 180deg);
-    animation: spinGlow 4.5s linear infinite;
-    pointer-events: none;
-}
-
-.winner-hero-badge {
-    position: relative;
-    z-index: 2;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    color: #5A6B57;
-    margin-bottom: 10px;
-}
-
-.winner-hero-number {
-    position: relative;
-    z-index: 2;
-    font-size: 70px;
-    line-height: 1;
-    font-weight: 900;
-    letter-spacing: -2px;
-    color: #2F422C;
-    margin-bottom: 10px;
-    text-shadow: 0 4px 10px rgba(47, 66, 44, 0.12);
-}
-
-.winner-hero-prize {
-    position: relative;
-    z-index: 2;
-    font-size: 26px;
-    line-height: 1.2;
-    font-weight: 800;
-    color: #32452F;
-    text-align: center;
-    margin-bottom: 8px;
-    word-break: keep-all;
-    overflow-wrap: anywhere;
-}
-
-.winner-hero-status {
-    position: relative;
-    z-index: 2;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    color: #6A7B66;
-}
-
-.winner-hero-spark {
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    background: rgba(255,255,255,0.95);
-    border-radius: 50%;
-    box-shadow: 0 0 20px rgba(255,255,255,0.95);
-    animation: sparkle 1.8s ease-in-out infinite;
-}
-
-.spark-left {
-    left: 7%;
-    top: 28%;
-}
-
-.spark-right {
-    right: 8%;
-    top: 24%;
-    animation-delay: 0.7s;
-}
+/* Prize Number TV Layout */
 
 .tv-grid-board {
     display: flex;
@@ -756,8 +628,7 @@ html, body, [class*="css"] {
     box-sizing: border-box;
     border-right: 1.5px solid #A7B39E;
     border-bottom: 1.5px solid #A7B39E;
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(249,250,247,0.96) 100%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(249,250,247,0.96) 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -806,6 +677,7 @@ html, body, [class*="css"] {
     margin-bottom: 8px;
     word-break: keep-all;
     overflow-wrap: anywhere;
+    min-height: 34px;
 }
 
 .tv-status {
@@ -818,12 +690,11 @@ html, body, [class*="css"] {
     letter-spacing: 0.3px;
     color: #6A7B66;
     text-align: center;
+    min-height: 14px;
 }
 
 .winner-cell {
-    background:
-        radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(255,255,255,0) 35%),
-        linear-gradient(180deg, #E6F1DE 0%, #D9EAD0 100%);
+    background: radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(255,255,255,0) 35%), linear-gradient(180deg, #E6F1DE 0%, #D9EAD0 100%);
 }
 
 .winner-cell .tv-number {
@@ -838,9 +709,7 @@ html, body, [class*="css"] {
     border: 3px solid #2F422C !important;
     z-index: 3;
     transform: scale(1.03);
-    box-shadow:
-        0 0 0 4px rgba(207, 220, 194, 0.85),
-        0 0 32px rgba(101, 142, 90, 0.45);
+    box-shadow: 0 0 0 4px rgba(207, 220, 194, 0.85), 0 0 32px rgba(101, 142, 90, 0.45);
     animation: activeWinnerPop 1.2s ease-in-out infinite;
 }
 
@@ -873,6 +742,7 @@ html, body, [class*="css"] {
     overflow: hidden;
     white-space: nowrap;
     position: relative;
+    text-align: center;
 }
 
 .draw-effect-text {
@@ -900,26 +770,6 @@ html, body, [class*="css"] {
     justify-content: center;
     margin-top: 56px;
     margin-bottom: 8px;
-}
-
-/* =====================================================
-   Animations
-   ===================================================== */
-
-@keyframes heroPulse {
-    0%, 100% { transform: translateY(0); box-shadow: 0 10px 24px rgba(47, 66, 44, 0.12); }
-    50% { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(47, 66, 44, 0.18); }
-}
-
-@keyframes spinGlow {
-    0% { transform: rotate(0deg); opacity: 0.35; }
-    50% { opacity: 0.6; }
-    100% { transform: rotate(360deg); opacity: 0.35; }
-}
-
-@keyframes sparkle {
-    0%, 100% { transform: scale(0.7); opacity: 0.4; }
-    50% { transform: scale(1.2); opacity: 1; }
 }
 
 @keyframes sweepShine {
@@ -984,14 +834,6 @@ html, body, [class*="css"] {
         font-size: 58px;
     }
 
-    .winner-hero-number {
-        font-size: 56px;
-    }
-
-    .winner-hero-prize {
-        font-size: 22px;
-    }
-
     .tv-grid-row {
         grid-template-columns: repeat(5, 1fr);
     }
@@ -1006,7 +848,7 @@ html, body, [class*="css"] {
 )
 
 # =========================================================
-# 페이지 1: Prize Board
+# 페이지 렌더링
 # =========================================================
 if page == "board":
     st.markdown('<div class="main-title">Raffle Event Prize Board</div>', unsafe_allow_html=True)
@@ -1065,15 +907,9 @@ if page == "board":
 
     st.markdown(board_html, unsafe_allow_html=True)
 
-# =========================================================
-# 페이지 2: Prize Number 1~100
-# =========================================================
 elif page == "numbers_1":
     render_number_page(1, 100, "Prize Number 1 - 100")
 
-# =========================================================
-# 페이지 3: Prize Number 101~200
-# =========================================================
 elif page == "numbers_2":
     render_number_page(101, 200, "Prize Number 101 - 200")
 
