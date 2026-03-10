@@ -347,7 +347,7 @@ div[data-testid="stAppViewContainer"] > .main {
 
 /* Prize Number 전용 타이틀 축소 */
 .number-title {
-    font-size: 46px;
+    font-size: 42px;
     margin: 0 0 10px 0;
     flex: 0 0 auto;
 }
@@ -672,7 +672,7 @@ div[data-testid="stAppViewContainer"] > .main {
 .tv-number {
     position: relative;
     z-index: 2;
-    font-size: 27px;
+    font-size: 25px;
     font-weight: 900;
     line-height: 1;
     color: #2F422C;
@@ -682,7 +682,7 @@ div[data-testid="stAppViewContainer"] > .main {
 .tv-prize {
     position: relative;
     z-index: 2;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     line-height: 1.1;
     color: #32452F;
@@ -697,7 +697,7 @@ div[data-testid="stAppViewContainer"] > .main {
     position: relative;
     z-index: 2;
     margin-top: auto;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 900;
     line-height: 1.05;
     letter-spacing: 0.2px;
