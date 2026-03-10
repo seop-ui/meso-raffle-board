@@ -310,23 +310,25 @@ html, body, [class*="css"] {
     color: #3B4F38;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
 }
 
-/* Streamlit 상단 여백 축소 */
+body {
+    overflow: hidden;
+}
+
 .block-container {
     max-width: 1360px;
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
 }
 
-/* 불필요한 기본 여백 조금 더 축소 */
 div[data-testid="stAppViewContainer"] > .main {
     padding-top: 0;
 }
 
-/* 공통 타이틀 */
 .main-title {
     text-align: center;
     font-size: 64px;
@@ -337,18 +339,18 @@ div[data-testid="stAppViewContainer"] > .main {
     color: #3B4F38;
 }
 
-/* Prize Number 전용 래퍼 */
 .number-page {
-    height: calc(100vh - 20px);
+    height: calc(100vh - 56px);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    overflow: hidden;
 }
 
-/* Prize Number 전용 타이틀 축소 */
 .number-title {
-    font-size: 42px;
-    margin: 0 0 10px 0;
+    font-size: 38px;
+    margin: 0 0 6px 0;
+    line-height: 1.0;
     flex: 0 0 auto;
 }
 
@@ -612,35 +614,36 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 /* =========================================================
-   Prize Number TV Layout (스크롤 방지용 최적화)
+   Prize Number TV Layout
    ========================================================= */
-
 .tv-grid-board {
     display: flex;
     flex-direction: column;
-    border: 2.5px solid #3B4F38;
-    border-radius: 18px;
+    border: 2px solid #3B4F38;
+    border-radius: 16px;
     overflow: hidden;
     background: rgba(255,255,255,0.90);
-    box-shadow: 0 12px 28px rgba(47, 66, 44, 0.08);
+    box-shadow: 0 8px 20px rgba(47, 66, 44, 0.06);
     flex: 1 1 auto;
     min-height: 0;
+    height: 100%;
 }
 
 .tv-grid-row {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     flex: 1 1 0;
+    min-height: 0;
 }
 
 .tv-cell {
     position: relative;
     min-height: 0;
     height: 100%;
-    padding: 6px 5px 5px 5px;
+    padding: 4px 4px 3px 4px;
     box-sizing: border-box;
-    border-right: 1.5px solid #A7B39E;
-    border-bottom: 1.5px solid #A7B39E;
+    border-right: 1px solid #A7B39E;
+    border-bottom: 1px solid #A7B39E;
     background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(249,250,247,0.96) 100%);
     display: flex;
     flex-direction: column;
@@ -672,46 +675,46 @@ div[data-testid="stAppViewContainer"] > .main {
 .tv-number {
     position: relative;
     z-index: 2;
-    font-size: 25px;
+    font-size: 22px;
     font-weight: 900;
     line-height: 1;
     color: #2F422C;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 .tv-prize {
     position: relative;
     z-index: 2;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1.0;
     color: #32452F;
     text-align: center;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     word-break: keep-all;
     overflow-wrap: anywhere;
-    min-height: 24px;
+    min-height: 18px;
 }
 
 .tv-status {
     position: relative;
     z-index: 2;
     margin-top: auto;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 900;
-    line-height: 1.05;
-    letter-spacing: 0.2px;
+    line-height: 1.0;
+    letter-spacing: 0.1px;
     color: #6A7B66;
     text-align: center;
-    min-height: 11px;
+    min-height: 8px;
 }
 
 /* 경품이 남아 있는 칸 */
 .prize-active-cell {
-    border: 3px solid #2F422C !important;
+    border: 2px solid #2F422C !important;
     z-index: 3;
-    transform: scale(1.015);
-    box-shadow: 0 0 0 3px rgba(207, 220, 194, 0.82), 0 0 20px rgba(101, 142, 90, 0.35);
+    transform: scale(1.01);
+    box-shadow: 0 0 0 2px rgba(207, 220, 194, 0.8), 0 0 14px rgba(101, 142, 90, 0.28);
     animation: activePrizePop 1.6s ease-in-out infinite;
     background:
         radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(255,255,255,0) 35%),
@@ -724,7 +727,7 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .prize-active-cell .tv-number {
-    font-size: 29px;
+    font-size: 24px;
     color: #1F351D;
 }
 
@@ -735,9 +738,9 @@ div[data-testid="stAppViewContainer"] > .main {
 .prize-active-cell::after {
     content: "★";
     position: absolute;
-    top: 4px;
-    right: 6px;
-    font-size: 14px;
+    top: 3px;
+    right: 5px;
+    font-size: 11px;
     font-weight: 900;
     color: #2F422C;
     animation: twinkle 1.1s ease-in-out infinite;
@@ -759,7 +762,7 @@ div[data-testid="stAppViewContainer"] > .main {
 
 .winner-done-cell .tv-number {
     color: #5F695C;
-    font-size: 27px;
+    font-size: 22px;
 }
 
 .winner-done-cell .tv-prize {
@@ -770,7 +773,7 @@ div[data-testid="stAppViewContainer"] > .main {
     color: #7A8477;
 }
 
-/* TV 송출용이므로 하단 로고 숨김 */
+/* TV 송출용: 하단 로고 숨김 */
 .logo-wrap {
     display: none;
 }
@@ -792,8 +795,8 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 @keyframes activePrizePop {
-    0%, 100% { transform: scale(1.015); }
-    50% { transform: scale(1.03); }
+    0%, 100% { transform: scale(1.01); }
+    50% { transform: scale(1.02); }
 }
 
 @keyframes twinkle {
@@ -804,7 +807,7 @@ div[data-testid="stAppViewContainer"] > .main {
 @media (max-width: 1180px) {
     .block-container {
         max-width: 1120px;
-        padding: 0.7rem;
+        padding: 0.5rem;
     }
 
     .main-title {
@@ -812,8 +815,8 @@ div[data-testid="stAppViewContainer"] > .main {
     }
 
     .number-title {
-        font-size: 38px;
-        margin-bottom: 8px;
+        font-size: 34px;
+        margin-bottom: 6px;
     }
 
     .summary-row {
@@ -853,15 +856,23 @@ div[data-testid="stAppViewContainer"] > .main {
     }
 
     .tv-number {
-        font-size: 23px;
+        font-size: 20px;
     }
 
     .tv-prize {
-        font-size: 10px;
+        font-size: 8px;
     }
 
     .tv-status {
-        font-size: 9px;
+        font-size: 7px;
+    }
+
+    .prize-active-cell .tv-number {
+        font-size: 21px;
+    }
+
+    .winner-done-cell .tv-number {
+        font-size: 20px;
     }
 }
 </style>
