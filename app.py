@@ -1,4 +1,3 @@
-import base64
 import time
 from urllib.parse import quote
 
@@ -159,11 +158,6 @@ def summary_box(label, value):
     )
 
 
-def get_base64_image(image_path: str) -> str:
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
-
-
 def normalize_status(value) -> str:
     if pd.isna(value):
         return ""
@@ -186,9 +180,11 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
     except Exception as e:
         st.markdown(
             f"""
-            <div class="main-title">{title_text}</div>
-            <div class="load-error-box">
-                Prize Number 시트를 불러오지 못했습니다.<br>{str(e)}
+            <div class="number-page">
+                <div class="main-title number-title">{title_text}</div>
+                <div class="load-error-box">
+                    Prize Number 시트를 불러오지 못했습니다.<br>{str(e)}
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -202,10 +198,12 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
     if missing:
         st.markdown(
             f"""
-            <div class="main-title">{title_text}</div>
-            <div class="load-error-box">
-                Prize Number 시트 컬럼이 맞지 않습니다.<br>
-                누락 컬럼: {", ".join(missing)}
+            <div class="number-page">
+                <div class="main-title number-title">{title_text}</div>
+                <div class="load-error-box">
+                    Prize Number 시트 컬럼이 맞지 않습니다.<br>
+                    누락 컬럼: {", ".join(missing)}
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -223,8 +221,6 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
     page_df = number_df[
         (number_df["Number"] >= start_num) & (number_df["Number"] <= end_num)
     ].sort_values("Number")
-
-    st.markdown(f'<div class="main-title">{title_text}</div>', unsafe_allow_html=True)
 
     rows_html = ""
 
@@ -267,7 +263,12 @@ def render_number_page(start_num: int, end_num: int, title_text: str):
         row_html += "</div>"
         rows_html += row_html
 
-    board_html = f'<div class="tv-grid-board">{rows_html}</div>'
+    board_html = f"""
+    <div class="number-page">
+        <div class="main-title number-title">{title_text}</div>
+        <div class="tv-grid-board">{rows_html}</div>
+    </div>
+    """
     st.markdown(board_html, unsafe_allow_html=True)
 
 
@@ -311,14 +312,21 @@ html, body, [class*="css"] {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Streamlit 상단 여백 축소 */
 .block-container {
     max-width: 1360px;
-    padding-top: 1.25rem;
-    padding-bottom: 1.2rem;
-    padding-left: 1.4rem;
-    padding-right: 1.4rem;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
+/* 불필요한 기본 여백 조금 더 축소 */
+div[data-testid="stAppViewContainer"] > .main {
+    padding-top: 0;
+}
+
+/* 공통 타이틀 */
 .main-title {
     text-align: center;
     font-size: 64px;
@@ -327,6 +335,21 @@ html, body, [class*="css"] {
     line-height: 1.02;
     margin: 0 0 24px 0;
     color: #3B4F38;
+}
+
+/* Prize Number 전용 래퍼 */
+.number-page {
+    height: calc(100vh - 20px);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* Prize Number 전용 타이틀 축소 */
+.number-title {
+    font-size: 46px;
+    margin: 0 0 10px 0;
+    flex: 0 0 auto;
 }
 
 .summary-row {
@@ -588,7 +611,9 @@ html, body, [class*="css"] {
     font-weight: 800;
 }
 
-/* Prize Number TV Layout */
+/* =========================================================
+   Prize Number TV Layout (스크롤 방지용 최적화)
+   ========================================================= */
 
 .tv-grid-board {
     display: flex;
@@ -598,17 +623,21 @@ html, body, [class*="css"] {
     overflow: hidden;
     background: rgba(255,255,255,0.90);
     box-shadow: 0 12px 28px rgba(47, 66, 44, 0.08);
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .tv-grid-row {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
+    flex: 1 1 0;
 }
 
 .tv-cell {
     position: relative;
-    min-height: 118px;
-    padding: 10px 8px 8px 8px;
+    min-height: 0;
+    height: 100%;
+    padding: 6px 5px 5px 5px;
     box-sizing: border-box;
     border-right: 1.5px solid #A7B39E;
     border-bottom: 1.5px solid #A7B39E;
@@ -643,46 +672,46 @@ html, body, [class*="css"] {
 .tv-number {
     position: relative;
     z-index: 2;
-    font-size: 34px;
+    font-size: 27px;
     font-weight: 900;
     line-height: 1;
     color: #2F422C;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .tv-prize {
     position: relative;
     z-index: 2;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 800;
-    line-height: 1.16;
+    line-height: 1.1;
     color: #32452F;
     text-align: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     word-break: keep-all;
     overflow-wrap: anywhere;
-    min-height: 34px;
+    min-height: 24px;
 }
 
 .tv-status {
     position: relative;
     z-index: 2;
     margin-top: auto;
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 900;
-    line-height: 1.1;
-    letter-spacing: 0.3px;
+    line-height: 1.05;
+    letter-spacing: 0.2px;
     color: #6A7B66;
     text-align: center;
-    min-height: 14px;
+    min-height: 11px;
 }
 
-/* 경품이 남아 있는 칸: 기존 winner 효과를 여기로 이동 */
+/* 경품이 남아 있는 칸 */
 .prize-active-cell {
     border: 3px solid #2F422C !important;
     z-index: 3;
-    transform: scale(1.03);
-    box-shadow: 0 0 0 4px rgba(207, 220, 194, 0.85), 0 0 32px rgba(101, 142, 90, 0.45);
+    transform: scale(1.015);
+    box-shadow: 0 0 0 3px rgba(207, 220, 194, 0.82), 0 0 20px rgba(101, 142, 90, 0.35);
     animation: activePrizePop 1.6s ease-in-out infinite;
     background:
         radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(255,255,255,0) 35%),
@@ -695,7 +724,7 @@ html, body, [class*="css"] {
 }
 
 .prize-active-cell .tv-number {
-    font-size: 38px;
+    font-size: 29px;
     color: #1F351D;
 }
 
@@ -706,15 +735,15 @@ html, body, [class*="css"] {
 .prize-active-cell::after {
     content: "★";
     position: absolute;
-    top: 6px;
-    right: 8px;
-    font-size: 18px;
+    top: 4px;
+    right: 6px;
+    font-size: 14px;
     font-weight: 900;
     color: #2F422C;
     animation: twinkle 1.1s ease-in-out infinite;
 }
 
-/* 이미 당첨된 번호: 효과 제거 + 회색 처리 */
+/* 이미 당첨된 번호 */
 .winner-done-cell {
     background: linear-gradient(180deg, #E3E5E0 0%, #D6D9D2 100%);
     border-color: #B3BBB0 !important;
@@ -730,7 +759,7 @@ html, body, [class*="css"] {
 
 .winner-done-cell .tv-number {
     color: #5F695C;
-    font-size: 34px;
+    font-size: 27px;
 }
 
 .winner-done-cell .tv-prize {
@@ -741,18 +770,16 @@ html, body, [class*="css"] {
     color: #7A8477;
 }
 
+/* TV 송출용이므로 하단 로고 숨김 */
 .logo-wrap {
-    display: flex;
-    justify-content: center;
-    margin-top: 56px;
-    margin-bottom: 8px;
+    display: none;
 }
 
 .load-error-box {
     text-align: center;
     font-size: 20px;
     color: #8B0000;
-    margin-top: 34px;
+    margin-top: 24px;
     padding: 24px;
     border: 2px solid #C7B0B0;
     border-radius: 16px;
@@ -765,23 +792,28 @@ html, body, [class*="css"] {
 }
 
 @keyframes activePrizePop {
-    0%, 100% { transform: scale(1.03); }
-    50% { transform: scale(1.06); }
+    0%, 100% { transform: scale(1.015); }
+    50% { transform: scale(1.03); }
 }
 
 @keyframes twinkle {
     0%, 100% { transform: scale(0.9); opacity: 0.7; }
-    50% { transform: scale(1.2); opacity: 1; }
+    50% { transform: scale(1.12); opacity: 1; }
 }
 
 @media (max-width: 1180px) {
     .block-container {
         max-width: 1120px;
-        padding: 1.1rem;
+        padding: 0.7rem;
     }
 
     .main-title {
-        font-size: 54px;
+        font-size: 52px;
+    }
+
+    .number-title {
+        font-size: 38px;
+        margin-bottom: 8px;
     }
 
     .summary-row {
@@ -817,11 +849,19 @@ html, body, [class*="css"] {
     }
 
     .tv-grid-row {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(10, 1fr);
     }
 
-    .tv-cell {
-        min-height: 120px;
+    .tv-number {
+        font-size: 23px;
+    }
+
+    .tv-prize {
+        font-size: 10px;
+    }
+
+    .tv-status {
+        font-size: 9px;
     }
 }
 </style>
@@ -894,19 +934,3 @@ elif page == "numbers_1":
 
 elif page == "numbers_2":
     render_number_page(101, 200, "Prize Number 101 - 200")
-
-# =========================================================
-# 로고
-# =========================================================
-try:
-    logo_base64 = get_base64_image("logo_grin_04.png")
-    st.markdown(
-        f"""
-        <div class="logo-wrap">
-            <img src="data:image/png;base64,{logo_base64}" width="230" style="opacity:0.9;" />
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-except Exception:
-    pass
