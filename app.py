@@ -1,13 +1,34 @@
 import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
+import time
+import base64
 
 st.set_page_config(
     page_title="Raffle Event Prize Board",
     layout="wide",
 )
 
-st_autorefresh(interval=5_000, key="raffle_refresh")
+# refresh every second
+st_autorefresh(interval=1000, key="raffle_refresh")
+
+# ===============================
+# 페이지 자동 전환 로직
+# ===============================
+
+cycle = 50
+t = int(time.time()) % cycle
+
+if t < 30:
+    page = "board"
+elif t < 40:
+    page = "numbers1"
+else:
+    page = "numbers2"
+
+# ===============================
+# 데이터 불러오기
+# ===============================
 
 sheet_url = "https://docs.google.com/spreadsheets/d/1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk/export?format=csv"
 
@@ -27,502 +48,267 @@ try:
     ball_count = int(pd.to_numeric(raw_df.iloc[1, 8], errors="coerce"))
     if ball_count <= 0:
         ball_count = 200
-except Exception:
+except:
     ball_count = 200
 
 
+# ===============================
+# Prize 정보 함수
+# ===============================
+
 def get_prize(place, prize):
+
     row = df[(df["Place"] == place) & (df["Prize"] == prize)]
 
     if row.empty:
-        return {
-            "qty": 0,
-            "available": 0,
-            "odds": "0%",
-            "sold_out": True,
-        }
+        return {"qty":0,"available":0,"odds":"0%","sold_out":True}
 
     qty = int(row.iloc[0]["Qty"])
     available = int(row.iloc[0]["Available"])
-    odds = str(row.iloc[0]["Odds"]).strip()
+    odds = str(row.iloc[0]["Odds"])
 
     return {
         "qty": qty,
         "available": available,
         "odds": odds,
-        "sold_out": available <= 0,
+        "sold_out": available <= 0
     }
 
 
-def get_card_class(item, large=False):
-    base = "feature-card" if large else "prize-card"
-    if item["sold_out"]:
-        return f"{base} soldout-card"
-    if item["available"] <= 2:
-        return f"{base} low-card"
-    return base
+# ===============================
+# 카드 렌더링
+# ===============================
 
-
-def render_card(title, item, large=False):
-    card_class = get_card_class(item, large)
+def render_card(title,item,large=False):
 
     if item["sold_out"]:
-        value_block = '<div class="value soldout-main">SOLD OUT</div>'
-        odds_value = '<div class="odds-value soldout-sub">0%</div>'
+        value = "SOLD OUT"
+        odds = "0%"
     else:
-        value_block = (
-            '<div class="value-row">'
-            f'<div class="value">{item["available"]}</div>'
-            f'<div class="qty-line">/{item["qty"]}</div>'
-            '</div>'
-        )
-        odds_value = f'<div class="odds-value">{item["odds"]}</div>'
+        value = f'{item["available"]}/{item["qty"]}'
+        odds = item["odds"]
 
-    return (
-        f'<div class="{card_class}">'
-        f'<div class="title">{title}</div>'
-        f'<div class="value-zone">{value_block}</div>'
-        f'<div class="odds-zone">'
-        f'<div class="odds-label">ODDS</div>'
-        f'<div class="odds-row">{odds_value}</div>'
-        f'</div>'
-        f'</div>'
-    )
+    size = "feature-card" if large else "prize-card"
+
+    html=f"""
+    <div class="{size}">
+        <div class="title">{title}</div>
+        <div class="value">{value}</div>
+        <div class="odds">{odds}</div>
+    </div>
+    """
+
+    return html
 
 
-def summary_box(label, value):
-    return (
-        '<div class="summary-card">'
-        f'<div class="summary-label">{label}</div>'
-        f'<div class="summary-value">{value}</div>'
-        '</div>'
-    )
+# ===============================
+# Prize Number 화면
+# ===============================
+
+def render_numbers(start,end):
+
+    number_url="https://docs.google.com/spreadsheets/d/1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk/export?format=csv&gid=0"
+
+    num_df=pd.read_csv(number_url)
+
+    num_df=num_df.iloc[start-1:end]
+
+    html='<div class="number-grid">'
+
+    for _,row in num_df.iterrows():
+
+        number=row["Number"]
+        prize=row["Prize"]
+        status=row["Winning Status"]
+
+        if status=="Winner":
+            color="#CFE8CF"
+        else:
+            color="#EFEFEF"
+
+        html+=f"""
+        <div class="ball" style="background:{color}">
+            <div class="num">{number}</div>
+            <div class="prize">{prize}</div>
+            <div class="status">{status}</div>
+        </div>
+        """
+
+    html+='</div>'
+
+    st.markdown(html,unsafe_allow_html=True)
 
 
-hair = get_prize("Single", "Laser Hair Removal (1 Session)")
-facial = get_prize("Single", "Custom Korean Facial (1 Session)")
+# ===============================
+# 통계 계산
+# ===============================
 
-off_bb = get_prize("80Off", "BB Laser")
-off_sylfirm = get_prize("80Off", "SylfirmX RF Microneedling")
-off_oligio = get_prize("80Off", "Oligio Lifting")
-off_ultherapy = get_prize("80Off", "Ultherapy Prime")
-
-free_bb = get_prize("Free", "BB Laser")
-free_sylfirm = get_prize("Free", "SylfirmX RF Microneedling")
-free_oligio = get_prize("Free", "Oligio Lifting")
-free_ultherapy = get_prize("Free", "Ultherapy Prime")
-
-detail_df = df[
+detail_df=df[
     df["Prize"].notna() &
-    (df["Prize"].astype(str).str.strip() != "") &
-    (df["Place"].astype(str).str.strip() != "합계")
+    (df["Prize"]!="") &
+    (df["Place"]!="합계")
 ]
 
-total_prizes_left = int(detail_df["Available"].sum())
-win_chance = round((total_prizes_left / ball_count) * 100, 2) if ball_count > 0 else 0
-lose_count = max(ball_count - total_prizes_left, 0)
-lose_chance = round((lose_count / ball_count) * 100, 2) if ball_count > 0 else 0
+total_prizes_left=int(detail_df["Available"].sum())
+
+win_chance=round((total_prizes_left/ball_count)*100,2)
+lose_chance=round((1-win_chance/100)*100,2)
+
+
+# ===============================
+# CSS
+# ===============================
 
 st.markdown("""
 <style>
-html, body, [class*="css"] {
-    background-color: #F7F7F5;
-    color: #3B4F38;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+
+body{
+background:#F7F7F5;
+color:#3B4F38;
 }
 
-.block-container {
-    max-width: 1360px;
-    padding-top: 1.6rem;
-    padding-bottom: 1.6rem;
-    padding-left: 1.6rem;
-    padding-right: 1.6rem;
+.main-title{
+text-align:center;
+font-size:60px;
+font-weight:900;
+margin-bottom:20px;
 }
 
-.main-title {
-    text-align: center;
-    font-size: 64px;
-    font-weight: 900;
-    letter-spacing: -1.4px;
-    line-height: 1.02;
-    margin: 0 0 24px 0;
-    color: #3B4F38;
+.summary{
+display:flex;
+justify-content:center;
+gap:20px;
+margin-bottom:20px;
 }
 
-.summary-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 16px;
+.summary-box{
+border:2px solid #3B4F38;
+padding:15px 30px;
+border-radius:15px;
+text-align:center;
 }
 
-.summary-card {
-    border: 2.5px solid #3B4F38;
-    background: rgba(255,255,255,0.92);
-    border-radius: 20px;
-    min-height: 108px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 14px 10px;
-    box-sizing: border-box;
+.feature-card{
+height:350px;
+border:2px solid #3B4F38;
+border-radius:20px;
+padding:10px;
+text-align:center;
 }
 
-.summary-label {
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: 0.9px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    line-height: 1.1;
-    text-align: center;
-    color: #4C5E49;
+.prize-card{
+height:150px;
+border:2px solid #3B4F38;
+border-radius:20px;
+padding:10px;
+text-align:center;
 }
 
-.summary-value {
-    font-size: 50px;
-    font-weight: 900;
-    line-height: 1;
-    text-align: center;
-    color: #2F422C;
+.title{
+font-size:18px;
+font-weight:700;
 }
 
-.board {
-    display: grid;
-    grid-template-columns: 360px minmax(0, 1fr);
-    gap: 16px;
-    align-items: start;
+.value{
+font-size:40px;
+font-weight:900;
+margin-top:20px;
 }
 
-.left-column {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    align-items: stretch;
+.odds{
+font-size:20px;
+margin-top:10px;
 }
 
-.right-column {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    align-items: start;
+.number-grid{
+display:grid;
+grid-template-columns:repeat(10,1fr);
+gap:8px;
+padding:20px;
 }
 
-.group {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
+.ball{
+border:2px solid #3B4F38;
+border-radius:10px;
+padding:8px;
+text-align:center;
+height:80px;
 }
 
-.group-title {
-    border: 2.5px solid #3B4F38;
-    background: #CFD4C2;
-    border-radius: 16px;
-    height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 10px 14px;
-    font-size: 20px;
-    font-weight: 900;
-    line-height: 1.15;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-    color: #32452F;
-    flex: 0 0 72px;
+.num{
+font-size:18px;
+font-weight:900;
 }
 
-.group-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    grid-auto-rows: 176px;
+.prize{
+font-size:11px;
 }
 
-.feature-card, .prize-card {
-    border: 2.5px solid #3B4F38;
-    background: rgba(255,255,255,0.94);
-    border-radius: 22px;
-    width: 100%;
-    box-sizing: border-box;
-    color: #3B4F38;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    overflow: hidden;
+.status{
+font-size:10px;
 }
 
-.feature-card {
-    height: 446px;
-    padding: 12px 10px 14px 10px;
-}
-
-.prize-card {
-    height: 176px;
-    padding: 8px 8px 10px 8px;
-}
-
-.title {
-    min-height: 96px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 0 10px;
-    font-size: 20px;
-    font-weight: 800;
-    line-height: 1.16;
-    word-break: keep-all;
-    overflow-wrap: anywhere;
-    box-sizing: border-box;
-    color: #32452F;
-}
-
-.prize-card .title {
-    min-height: 50px;
-    font-size: 18px;
-    line-height: 1.12;
-}
-
-.value-zone {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 2px;
-    min-height: 0;
-}
-
-.value-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    min-width: 0;
-}
-
-.feature-card .value {
-    font-size: 86px;
-    font-weight: 900;
-    line-height: 0.95;
-    letter-spacing: -2px;
-    color: #3B4F38;
-}
-
-.prize-card .value {
-    font-size: 62px;
-    font-weight: 900;
-    line-height: 0.95;
-    letter-spacing: -1.2px;
-    color: #3B4F38;
-}
-
-.qty-line {
-    font-size: 36px;
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: -0.6px;
-    margin-top: 8px;
-    color: #3B4F38;
-}
-
-.feature-card .qty-line {
-    font-size: 38px;
-    margin-top: 12px;
-}
-
-.prize-card .qty-line {
-    font-size: 24px;
-    margin-top: 6px;
-}
-
-.odds-zone {
-    min-height: 76px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 76px;
-}
-
-.prize-card .odds-zone {
-    min-height: 42px;
-    flex: 0 0 42px;
-}
-
-.odds-label {
-    font-size: 13px;
-    font-weight: 900;
-    letter-spacing: 1.2px;
-    line-height: 1;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    color: #5A6B57;
-}
-
-.prize-card .odds-label {
-    font-size: 11px;
-    margin-bottom: 4px;
-}
-
-.odds-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 0;
-}
-
-.odds-value {
-    font-size: 34px;
-    font-weight: 900;
-    line-height: 1;
-    color: #2F422C;
-}
-
-.prize-card .odds-value {
-    font-size: 18px;
-}
-
-.low-card {
-    background: #F8F5F2;
-}
-
-.soldout-card {
-    background: #ECEEE8;
-    border-color: #9AA694;
-    color: #6B7566;
-}
-
-.soldout-main {
-    font-size: 28px !important;
-    line-height: 1.1;
-    text-align: center;
-    font-weight: 900;
-}
-
-.soldout-sub {
-    font-size: 14px !important;
-    font-weight: 800;
-}
-
-@media (max-width: 1180px) {
-    .block-container {
-        max-width: 1120px;
-        padding: 1.2rem;
-    }
-
-    .main-title {
-        font-size: 54px;
-    }
-
-    .summary-row {
-        grid-template-columns: 1fr;
-    }
-
-    .board {
-        grid-template-columns: 1fr;
-    }
-
-    .left-column {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .right-column {
-        grid-template-columns: 1fr;
-    }
-
-    .feature-card {
-        height: 410px;
-    }
-
-    .summary-value {
-        font-size: 40px;
-    }
-
-    .feature-card .value {
-        font-size: 76px;
-    }
-
-    .prize-card .value {
-        font-size: 58px;
-    }
-}
 </style>
-""", unsafe_allow_html=True)
+""",unsafe_allow_html=True)
 
-st.markdown('<div class="main-title">Raffle Event Prize Board</div>', unsafe_allow_html=True)
+# ===============================
+# 페이지 렌더링
+# ===============================
 
-summary_html = (
-    '<div class="summary-row">'
-    + summary_box("Total Prizes Left", total_prizes_left)
-    + summary_box("Win Chance", f"{win_chance:.1f}%")
-    + summary_box("Lose Chance", f"{lose_chance:.1f}%")
-    + '</div>'
-)
-st.markdown(summary_html, unsafe_allow_html=True)
+if page=="board":
 
-left_html = (
-    '<div class="left-column">'
-    + render_card("Hair Removal (1 session)", hair, large=True)
-    + render_card("Korean Facial (1 session)", facial, large=True)
-    + '</div>'
-)
+    st.markdown('<div class="main-title">Raffle Event Prize Board</div>',unsafe_allow_html=True)
 
-group1_html = (
-    '<div class="group">'
-    '<div class="group-title">80% Off MeSO Signature Treatment</div>'
-    '<div class="group-grid">'
-    + render_card("BB Laser", off_bb)
-    + render_card("SylfirmX RF", off_sylfirm)
-    + render_card("Oligio Lifting", off_oligio)
-    + render_card("Ultherapy Prime", off_ultherapy)
-    + '</div></div>'
-)
+    st.markdown(f"""
+    <div class="summary">
+        <div class="summary-box">
+            <div>Total Prizes Left</div>
+            <div style="font-size:40px;font-weight:900;">{total_prizes_left}</div>
+        </div>
 
-group2_html = (
-    '<div class="group">'
-    '<div class="group-title">Free MeSO Signature Treatment</div>'
-    '<div class="group-grid">'
-    + render_card("BB Laser", free_bb)
-    + render_card("SylfirmX RF", free_sylfirm)
-    + render_card("Oligio Lifting", free_oligio)
-    + render_card("Ultherapy Prime", free_ultherapy)
-    + '</div></div>'
-)
+        <div class="summary-box">
+            <div>Win Chance</div>
+            <div style="font-size:40px;font-weight:900;">{win_chance:.1f}%</div>
+        </div>
 
-right_html = (
-    '<div class="right-column">'
-    + group1_html
-    + group2_html
-    + '</div>'
-)
-
-board_html = (
-    '<div class="board">'
-    + left_html
-    + right_html
-    + '</div>'
-)
-
-st.markdown(board_html, unsafe_allow_html=True)
-
-import base64
-
-def get_base64_image(image_path: str) -> str:
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
-
-logo_base64 = get_base64_image("logo_grin_04.png")
-
-st.markdown(
-    f"""
-    <div style="display:flex; justify-content:center; margin-top:140px; margin-bottom:10px;">
-        <img src="data:image/png;base64,{logo_base64}" width="230" style="opacity:0.9;" />
+        <div class="summary-box">
+            <div>Lose Chance</div>
+            <div style="font-size:40px;font-weight:900;">{lose_chance:.1f}%</div>
+        </div>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    """,unsafe_allow_html=True)
+
+    hair=get_prize("Single","Laser Hair Removal (1 Session)")
+    facial=get_prize("Single","Custom Korean Facial (1 Session)")
+
+    st.markdown(render_card("Hair Removal",hair,True),unsafe_allow_html=True)
+    st.markdown(render_card("Korean Facial",facial,True),unsafe_allow_html=True)
+
+elif page=="numbers1":
+
+    st.markdown('<div class="main-title">Prize Numbers 1 - 100</div>',unsafe_allow_html=True)
+
+    render_numbers(1,100)
+
+elif page=="numbers2":
+
+    st.markdown('<div class="main-title">Prize Numbers 101 - 200</div>',unsafe_allow_html=True)
+
+    render_numbers(101,200)
+
+
+# ===============================
+# 로고
+# ===============================
+
+def get_base64_image(path):
+    with open(path,"rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+logo_base64=get_base64_image("logo_grin_04.png")
+
+st.markdown(f"""
+<div style="display:flex;justify-content:center;margin-top:80px;">
+<img src="data:image/png;base64,{logo_base64}" width="200">
+</div>
+""",unsafe_allow_html=True)
