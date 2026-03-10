@@ -1,3 +1,7 @@
+import base64
+import time
+from urllib.parse import quote
+
 import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
@@ -7,21 +11,80 @@ st.set_page_config(
     layout="wide",
 )
 
-st_autorefresh(interval=5_000, key="raffle_refresh")
+# =========================================================
+# 미리보기용 자동 전환
+# 1) Prize Board      : 5초
+# 2) Prize Number 1~100 : 5초
+# 3) Prize Number 101~200 : 5초
+# =========================================================
+st_autorefresh(interval=1000, key="raffle_refresh")
 
-sheet_url = "https://docs.google.com/spreadsheets/d/1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk/export?format=csv"
+BOARD_SECONDS = 5
+NUMBERS_1_SECONDS = 5
+NUMBERS_2_SECONDS = 5
+CYCLE_SECONDS = BOARD_SECONDS + NUMBERS_1_SECONDS + NUMBERS_2_SECONDS
 
-df = pd.read_csv(sheet_url)
-raw_df = pd.read_csv(sheet_url, header=None)
+now_ts = time.time()
+t = int(now_ts) % CYCLE_SECONDS
 
-df = df.loc[:, ~df.columns.astype(str).str.contains("^Unnamed")]
+if t < BOARD_SECONDS:
+    page = "board"
+elif t < BOARD_SECONDS + NUMBERS_1_SECONDS:
+    page = "numbers_1"
+else:
+    page = "numbers_2"
+
+# =========================================================
+# Google Sheets 설정
+# 시트 이름으로 직접 읽음
+# =========================================================
+SPREADSHEET_ID = "1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk"
+BOARD_SHEET_NAME = "Prize Board"
+NUMBER_SHEET_NAME = "Prize Number"
+
+
+def build_sheet_csv_url(spreadsheet_id: str, sheet_name: str) -> str:
+    encoded_sheet = quote(sheet_name)
+    return (
+        f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq"
+        f"?tqx=out:csv&sheet={encoded_sheet}"
+    )
+
+
+BOARD_URL = build_sheet_csv_url(SPREADSHEET_ID, BOARD_SHEET_NAME)
+NUMBER_URL = build_sheet_csv_url(SPREADSHEET_ID, NUMBER_SHEET_NAME)
+
+# =========================================================
+# 데이터 로드
+# =========================================================
+@st.cache_data(ttl=2)
+def load_board_data():
+    board_df = pd.read_csv(BOARD_URL)
+    raw_board_df = pd.read_csv(BOARD_URL, header=None)
+    return board_df, raw_board_df
+
+
+@st.cache_data(ttl=2)
+def load_number_data():
+    number_df = pd.read_csv(NUMBER_URL)
+    return number_df
+
+
+try:
+    df, raw_df = load_board_data()
+except Exception as e:
+    st.error(f"Prize Board 시트를 불러오지 못했습니다: {e}")
+    st.stop()
+
+df = df.loc[:, ~df.columns.astype(str).str.contains("^Unnamed", regex=True)]
 
 for col in ["Qty", "Winners", "Available"]:
-    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
 
-df["Place"] = df["Place"].astype(str).str.strip()
-df["Prize"] = df["Prize"].astype(str).str.strip()
-df["Odds"] = df["Odds"].astype(str).str.strip()
+for col in ["Place", "Prize", "Odds"]:
+    if col in df.columns:
+        df[col] = df[col].astype(str).fillna("").str.strip()
 
 try:
     ball_count = int(pd.to_numeric(raw_df.iloc[1, 8], errors="coerce"))
@@ -31,6 +94,9 @@ except Exception:
     ball_count = 200
 
 
+# =========================================================
+# 공통 함수
+# =========================================================
 def get_prize(place, prize):
     row = df[(df["Place"] == place) & (df["Prize"] == prize)]
 
@@ -74,7 +140,7 @@ def render_card(title, item, large=False):
             '<div class="value-row">'
             f'<div class="value">{item["available"]}</div>'
             f'<div class="qty-line">/{item["qty"]}</div>'
-            '</div>'
+            "</div>"
         )
         odds_value = f'<div class="odds-value">{item["odds"]}</div>'
 
@@ -85,8 +151,8 @@ def render_card(title, item, large=False):
         f'<div class="odds-zone">'
         f'<div class="odds-label">ODDS</div>'
         f'<div class="odds-row">{odds_value}</div>'
-        f'</div>'
-        f'</div>'
+        f"</div>"
+        f"</div>"
     )
 
 
@@ -95,10 +161,163 @@ def summary_box(label, value):
         '<div class="summary-card">'
         f'<div class="summary-label">{label}</div>'
         f'<div class="summary-value">{value}</div>'
-        '</div>'
+        "</div>"
     )
 
 
+def get_base64_image(image_path: str) -> str:
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+
+
+def normalize_status(value: str) -> str:
+    v = str(value).strip().lower()
+    return v
+
+
+# =========================================================
+# Prize Number 페이지 렌더링
+# =========================================================
+def render_number_page(start_num: int, end_num: int, title_text: str):
+    try:
+        number_df = load_number_data()
+    except Exception as e:
+        st.markdown(
+            f"""
+            <div class="main-title">{title_text}</div>
+            <div class="load-error-box">
+                Prize Number 시트를 불러오지 못했습니다.<br>
+                {str(e)}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    number_df.columns = [str(c).strip() for c in number_df.columns]
+
+    required_cols = ["Number", "Prize", "Winning Status"]
+    missing = [c for c in required_cols if c not in number_df.columns]
+    if missing:
+        st.markdown(
+            f"""
+            <div class="main-title">{title_text}</div>
+            <div class="load-error-box">
+                Prize Number 시트 컬럼이 맞지 않습니다.<br>
+                누락 컬럼: {", ".join(missing)}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    number_df = number_df[required_cols].copy()
+    number_df["Number"] = pd.to_numeric(number_df["Number"], errors="coerce")
+    number_df = number_df[number_df["Number"].notna()].copy()
+    number_df["Number"] = number_df["Number"].astype(int)
+    number_df["Prize"] = number_df["Prize"].astype(str).fillna("").str.strip()
+    number_df["Winning Status"] = (
+        number_df["Winning Status"].astype(str).fillna("").str.strip()
+    )
+
+    page_df = number_df[
+        (number_df["Number"] >= start_num) & (number_df["Number"] <= end_num)
+    ].sort_values("Number")
+
+    winners_df = page_df[
+        page_df["Winning Status"].apply(normalize_status) == "winner"
+    ].copy()
+
+    highlighted_number = None
+    highlighted_prize = ""
+    highlighted_status = ""
+
+    if not winners_df.empty:
+        hero_index = int(now_ts * 1.25) % len(winners_df)
+        hero_row = winners_df.iloc[hero_index]
+        highlighted_number = int(hero_row["Number"])
+        highlighted_prize = str(hero_row["Prize"])
+        highlighted_status = str(hero_row["Winning Status"])
+
+    st.markdown(f'<div class="main-title">{title_text}</div>', unsafe_allow_html=True)
+
+    if highlighted_number is not None:
+        hero_html = f"""
+        <div class="winner-hero">
+            <div class="winner-hero-glow"></div>
+            <div class="winner-hero-badge">WINNER SPOTLIGHT</div>
+            <div class="winner-hero-number">#{highlighted_number}</div>
+            <div class="winner-hero-prize">{highlighted_prize}</div>
+            <div class="winner-hero-status">{highlighted_status}</div>
+            <div class="winner-hero-spark spark-left"></div>
+            <div class="winner-hero-spark spark-right"></div>
+        </div>
+        """
+    else:
+        hero_html = """
+        <div class="winner-hero winner-hero-empty">
+            <div class="winner-hero-badge">PRIZE NUMBER</div>
+            <div class="winner-hero-number">READY</div>
+            <div class="winner-hero-prize">No winner marked on this page yet</div>
+            <div class="winner-hero-status">Waiting for draw result</div>
+        </div>
+        """
+
+    st.markdown(hero_html, unsafe_allow_html=True)
+
+    # 10x10 그리드
+    cells_html = ""
+    for row_start in range(start_num, end_num + 1, 10):
+        row_html = '<div class="tv-grid-row">'
+        for n in range(row_start, row_start + 10):
+            matched = page_df[page_df["Number"] == n]
+
+            if matched.empty:
+                prize_text = ""
+                status_text = ""
+                status_norm = ""
+            else:
+                prize_text = str(matched.iloc[0]["Prize"])
+                status_text = str(matched.iloc[0]["Winning Status"])
+                status_norm = normalize_status(status_text)
+
+            classes = ["tv-cell"]
+
+            if status_norm == "winner":
+                classes.append("winner-cell")
+
+            if highlighted_number is not None and n == highlighted_number:
+                classes.append("active-winner-cell")
+
+            display_status = status_text if status_text else ""
+
+            row_html += f"""
+            <div class="{' '.join(classes)}">
+                <div class="cell-shine"></div>
+                <div class="tv-number">{n}</div>
+                <div class="tv-prize">{prize_text}</div>
+                <div class="tv-status">{display_status}</div>
+            </div>
+            """
+        row_html += "</div>"
+        cells_html += row_html
+
+    st.markdown(f'<div class="tv-grid-board">{cells_html}</div>', unsafe_allow_html=True)
+
+    if highlighted_number is not None:
+        st.markdown(
+            f"""
+            <div class="draw-effect-bar">
+                <span class="draw-effect-text">NOW HIGHLIGHTING WINNING BALL #{highlighted_number}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+# =========================================================
+# 보드 데이터 계산
+# =========================================================
 hair = get_prize("Single", "Laser Hair Removal (1 Session)")
 facial = get_prize("Single", "Custom Korean Facial (1 Session)")
 
@@ -113,9 +332,9 @@ free_oligio = get_prize("Free", "Oligio Lifting")
 free_ultherapy = get_prize("Free", "Ultherapy Prime")
 
 detail_df = df[
-    df["Prize"].notna() &
-    (df["Prize"].astype(str).str.strip() != "") &
-    (df["Place"].astype(str).str.strip() != "합계")
+    df["Prize"].notna()
+    & (df["Prize"].astype(str).str.strip() != "")
+    & (df["Place"].astype(str).str.strip() != "합계")
 ]
 
 total_prizes_left = int(detail_df["Available"].sum())
@@ -123,7 +342,11 @@ win_chance = round((total_prizes_left / ball_count) * 100, 2) if ball_count > 0 
 lose_count = max(ball_count - total_prizes_left, 0)
 lose_chance = round((lose_count / ball_count) * 100, 2) if ball_count > 0 else 0
 
-st.markdown("""
+# =========================================================
+# CSS
+# =========================================================
+st.markdown(
+    """
 <style>
 html, body, [class*="css"] {
     background-color: #F7F7F5;
@@ -134,10 +357,10 @@ html, body, [class*="css"] {
 
 .block-container {
     max-width: 1360px;
-    padding-top: 1.6rem;
-    padding-bottom: 1.6rem;
-    padding-left: 1.6rem;
-    padding-right: 1.6rem;
+    padding-top: 1.25rem;
+    padding-bottom: 1.2rem;
+    padding-left: 1.4rem;
+    padding-right: 1.4rem;
 }
 
 .main-title {
@@ -409,10 +632,320 @@ html, body, [class*="css"] {
     font-weight: 800;
 }
 
+/* =====================================================
+   Prize Number TV Layout
+   ===================================================== */
+
+.winner-hero {
+    position: relative;
+    overflow: hidden;
+    border: 3px solid #3B4F38;
+    border-radius: 28px;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.85), rgba(255,255,255,0) 32%),
+        linear-gradient(135deg, #DDE7D3 0%, #F9FAF7 45%, #E9F3DE 100%);
+    padding: 24px 24px 22px 24px;
+    margin-bottom: 18px;
+    min-height: 190px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 24px rgba(47, 66, 44, 0.12);
+    animation: heroPulse 2.2s ease-in-out infinite;
+}
+
+.winner-hero-empty {
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9), rgba(255,255,255,0) 32%),
+        linear-gradient(135deg, #F3F5EE 0%, #FBFBF9 50%, #EEF2E7 100%);
+}
+
+.winner-hero-glow {
+    position: absolute;
+    inset: -30%;
+    background: conic-gradient(from 0deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,0.5) 90deg, rgba(255,255,255,0) 180deg);
+    animation: spinGlow 4.5s linear infinite;
+    pointer-events: none;
+}
+
+.winner-hero-badge {
+    position: relative;
+    z-index: 2;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #5A6B57;
+    margin-bottom: 10px;
+}
+
+.winner-hero-number {
+    position: relative;
+    z-index: 2;
+    font-size: 70px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: #2F422C;
+    margin-bottom: 10px;
+    text-shadow: 0 4px 10px rgba(47, 66, 44, 0.12);
+}
+
+.winner-hero-prize {
+    position: relative;
+    z-index: 2;
+    font-size: 26px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: #32452F;
+    text-align: center;
+    margin-bottom: 8px;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.winner-hero-status {
+    position: relative;
+    z-index: 2;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #6A7B66;
+}
+
+.winner-hero-spark {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(255,255,255,0.95);
+    animation: sparkle 1.8s ease-in-out infinite;
+}
+
+.spark-left {
+    left: 7%;
+    top: 28%;
+}
+
+.spark-right {
+    right: 8%;
+    top: 24%;
+    animation-delay: 0.7s;
+}
+
+.tv-grid-board {
+    display: flex;
+    flex-direction: column;
+    border: 2.5px solid #3B4F38;
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.90);
+    box-shadow: 0 12px 28px rgba(47, 66, 44, 0.08);
+}
+
+.tv-grid-row {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+}
+
+.tv-cell {
+    position: relative;
+    min-height: 118px;
+    padding: 10px 8px 8px 8px;
+    box-sizing: border-box;
+    border-right: 1.5px solid #A7B39E;
+    border-bottom: 1.5px solid #A7B39E;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(249,250,247,0.96) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+}
+
+.tv-grid-row .tv-cell:last-child {
+    border-right: none;
+}
+
+.tv-grid-row:last-child .tv-cell {
+    border-bottom: none;
+}
+
+.cell-shine {
+    position: absolute;
+    top: -40%;
+    left: -120%;
+    width: 70%;
+    height: 180%;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0) 100%);
+    transform: rotate(18deg);
+    pointer-events: none;
+    opacity: 0;
+}
+
+.tv-number {
+    position: relative;
+    z-index: 2;
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1;
+    color: #2F422C;
+    margin-bottom: 10px;
+}
+
+.tv-prize {
+    position: relative;
+    z-index: 2;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.16;
+    color: #32452F;
+    text-align: center;
+    margin-bottom: 8px;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.tv-status {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: 0.3px;
+    color: #6A7B66;
+    text-align: center;
+}
+
+.winner-cell {
+    background:
+        radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(255,255,255,0) 35%),
+        linear-gradient(180deg, #E6F1DE 0%, #D9EAD0 100%);
+}
+
+.winner-cell .tv-number {
+    color: #1F351D;
+}
+
+.winner-cell .tv-status {
+    color: #234720;
+}
+
+.active-winner-cell {
+    border: 3px solid #2F422C !important;
+    z-index: 3;
+    transform: scale(1.03);
+    box-shadow:
+        0 0 0 4px rgba(207, 220, 194, 0.85),
+        0 0 32px rgba(101, 142, 90, 0.45);
+    animation: activeWinnerPop 1.2s ease-in-out infinite;
+}
+
+.active-winner-cell .cell-shine {
+    opacity: 1;
+    animation: sweepShine 1.3s linear infinite;
+}
+
+.active-winner-cell .tv-number {
+    font-size: 38px;
+}
+
+.active-winner-cell::after {
+    content: "★";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #2F422C;
+    animation: twinkle 0.9s ease-in-out infinite;
+}
+
+.draw-effect-bar {
+    margin-top: 16px;
+    border: 2px solid #3B4F38;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #EAF2E1 0%, #F9FBF7 50%, #EAF2E1 100%);
+    padding: 10px 18px;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+}
+
+.draw-effect-text {
+    display: inline-block;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #2F422C;
+    animation: marqueeGlow 2s ease-in-out infinite;
+}
+
+.load-error-box {
+    text-align: center;
+    font-size: 20px;
+    color: #8B0000;
+    margin-top: 34px;
+    padding: 24px;
+    border: 2px solid #C7B0B0;
+    border-radius: 16px;
+    background: #FFF7F7;
+}
+
+.logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 56px;
+    margin-bottom: 8px;
+}
+
+/* =====================================================
+   Animations
+   ===================================================== */
+
+@keyframes heroPulse {
+    0%, 100% { transform: translateY(0); box-shadow: 0 10px 24px rgba(47, 66, 44, 0.12); }
+    50% { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(47, 66, 44, 0.18); }
+}
+
+@keyframes spinGlow {
+    0% { transform: rotate(0deg); opacity: 0.35; }
+    50% { opacity: 0.6; }
+    100% { transform: rotate(360deg); opacity: 0.35; }
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(0.7); opacity: 0.4; }
+    50% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes sweepShine {
+    0% { left: -120%; }
+    100% { left: 155%; }
+}
+
+@keyframes activeWinnerPop {
+    0%, 100% { transform: scale(1.03); }
+    50% { transform: scale(1.06); }
+}
+
+@keyframes twinkle {
+    0%, 100% { transform: scale(0.9); opacity: 0.7; }
+    50% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes marqueeGlow {
+    0%, 100% { letter-spacing: 1px; opacity: 0.95; }
+    50% { letter-spacing: 1.6px; opacity: 1; }
+}
+
 @media (max-width: 1180px) {
     .block-container {
         max-width: 1120px;
-        padding: 1.2rem;
+        padding: 1.1rem;
     }
 
     .main-title {
@@ -450,79 +983,112 @@ html, body, [class*="css"] {
     .prize-card .value {
         font-size: 58px;
     }
+
+    .winner-hero-number {
+        font-size: 56px;
+    }
+
+    .winner-hero-prize {
+        font-size: 22px;
+    }
+
+    .tv-grid-row {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .tv-cell {
+        min-height: 120px;
+    }
 }
 </style>
-""", unsafe_allow_html=True)
-
-st.markdown('<div class="main-title">Raffle Event Prize Board</div>', unsafe_allow_html=True)
-
-summary_html = (
-    '<div class="summary-row">'
-    + summary_box("Total Prizes Left", total_prizes_left)
-    + summary_box("Win Chance", f"{win_chance:.1f}%")
-    + summary_box("Lose Chance", f"{lose_chance:.1f}%")
-    + '</div>'
-)
-st.markdown(summary_html, unsafe_allow_html=True)
-
-left_html = (
-    '<div class="left-column">'
-    + render_card("Hair Removal (1 session)", hair, large=True)
-    + render_card("Korean Facial (1 session)", facial, large=True)
-    + '</div>'
+""",
+    unsafe_allow_html=True,
 )
 
-group1_html = (
-    '<div class="group">'
-    '<div class="group-title">80% Off MeSO Signature Treatment</div>'
-    '<div class="group-grid">'
-    + render_card("BB Laser", off_bb)
-    + render_card("SylfirmX RF", off_sylfirm)
-    + render_card("Oligio Lifting", off_oligio)
-    + render_card("Ultherapy Prime", off_ultherapy)
-    + '</div></div>'
-)
+# =========================================================
+# 페이지 1: Prize Board
+# =========================================================
+if page == "board":
+    st.markdown('<div class="main-title">Raffle Event Prize Board</div>', unsafe_allow_html=True)
 
-group2_html = (
-    '<div class="group">'
-    '<div class="group-title">Free MeSO Signature Treatment</div>'
-    '<div class="group-grid">'
-    + render_card("BB Laser", free_bb)
-    + render_card("SylfirmX RF", free_sylfirm)
-    + render_card("Oligio Lifting", free_oligio)
-    + render_card("Ultherapy Prime", free_ultherapy)
-    + '</div></div>'
-)
+    summary_html = (
+        '<div class="summary-row">'
+        + summary_box("Total Prizes Left", total_prizes_left)
+        + summary_box("Win Chance", f"{win_chance:.1f}%")
+        + summary_box("Lose Chance", f"{lose_chance:.1f}%")
+        + "</div>"
+    )
+    st.markdown(summary_html, unsafe_allow_html=True)
 
-right_html = (
-    '<div class="right-column">'
-    + group1_html
-    + group2_html
-    + '</div>'
-)
+    left_html = (
+        '<div class="left-column">'
+        + render_card("Hair Removal (1 session)", hair, large=True)
+        + render_card("Korean Facial (1 session)", facial, large=True)
+        + "</div>"
+    )
 
-board_html = (
-    '<div class="board">'
-    + left_html
-    + right_html
-    + '</div>'
-)
+    group1_html = (
+        '<div class="group">'
+        '<div class="group-title">80% Off MeSO Signature Treatment</div>'
+        '<div class="group-grid">'
+        + render_card("BB Laser", off_bb)
+        + render_card("SylfirmX RF", off_sylfirm)
+        + render_card("Oligio Lifting", off_oligio)
+        + render_card("Ultherapy Prime", off_ultherapy)
+        + "</div></div>"
+    )
 
-st.markdown(board_html, unsafe_allow_html=True)
+    group2_html = (
+        '<div class="group">'
+        '<div class="group-title">Free MeSO Signature Treatment</div>'
+        '<div class="group-grid">'
+        + render_card("BB Laser", free_bb)
+        + render_card("SylfirmX RF", free_sylfirm)
+        + render_card("Oligio Lifting", free_oligio)
+        + render_card("Ultherapy Prime", free_ultherapy)
+        + "</div></div>"
+    )
 
-import base64
+    right_html = (
+        '<div class="right-column">'
+        + group1_html
+        + group2_html
+        + "</div>"
+    )
 
-def get_base64_image(image_path: str) -> str:
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
+    board_html = (
+        '<div class="board">'
+        + left_html
+        + right_html
+        + "</div>"
+    )
 
-logo_base64 = get_base64_image("logo_grin_04.png")
+    st.markdown(board_html, unsafe_allow_html=True)
 
-st.markdown(
-    f"""
-    <div style="display:flex; justify-content:center; margin-top:140px; margin-bottom:10px;">
-        <img src="data:image/png;base64,{logo_base64}" width="230" style="opacity:0.9;" />
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# =========================================================
+# 페이지 2: Prize Number 1~100
+# =========================================================
+elif page == "numbers_1":
+    render_number_page(1, 100, "Prize Number 1 - 100")
+
+# =========================================================
+# 페이지 3: Prize Number 101~200
+# =========================================================
+elif page == "numbers_2":
+    render_number_page(101, 200, "Prize Number 101 - 200")
+
+# =========================================================
+# 로고
+# =========================================================
+try:
+    logo_base64 = get_base64_image("logo_grin_04.png")
+    st.markdown(
+        f"""
+        <div class="logo-wrap">
+            <img src="data:image/png;base64,{logo_base64}" width="230" style="opacity:0.9;" />
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+except Exception:
+    pass
