@@ -685,7 +685,7 @@ div[data-testid="stAppViewContainer"] > .main {
 .tv-prize {
     position: relative;
     z-index: 2;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     line-height: 1.0;
     color: #32452F;
