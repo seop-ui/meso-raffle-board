@@ -113,8 +113,14 @@ def get_prize(place, prize):
     }
 
 
-def get_card_class(item, large=False):
-    base = "feature-card" if large else "prize-card"
+def get_card_class(item, large=False, bottom_large=False):
+    if large:
+        base = "feature-card"
+    elif bottom_large:
+        base = "prize-card bottom-large-card"
+    else:
+        base = "prize-card"
+
     if item["sold_out"]:
         return f"{base} soldout-card"
     if item["available"] <= 2:
@@ -122,8 +128,8 @@ def get_card_class(item, large=False):
     return base
 
 
-def render_card(title, item, large=False):
-    card_class = get_card_class(item, large)
+def render_card(title, item, large=False, bottom_large=False):
+    card_class = get_card_class(item, large=large, bottom_large=bottom_large)
 
     if item["sold_out"]:
         value_block = '<div class="value soldout-main">SOLD OUT</div>'
@@ -174,22 +180,18 @@ def safe_text(value) -> str:
 def render_group_five(group_title, cards):
     """
     cards: [(title, item), ...] 총 5개
-    첫 줄 3개 / 둘째 줄 3칸 그리드(가운데 빈칸)
+    위 3개 = 작은 카드
+    아래 2개 = 더 넓고 더 큰 카드
     """
-    top_row = "".join(render_card(title, item) for title, item in cards[:3])
-
-    bottom_row = (
-        render_card(cards[3][0], cards[3][1])
-        + '<div class="group-gap"></div>'
-        + render_card(cards[4][0], cards[4][1])
-    )
-
     return (
         '<div class="group">'
         f'<div class="group-title">{group_title}</div>'
         '<div class="group-grid-five">'
-        f'<div class="group-row group-row-3">{top_row}</div>'
-        f'<div class="group-row group-row-bottom">{bottom_row}</div>'
+        f'<div class="group-item top-item top-1">{render_card(cards[0][0], cards[0][1])}</div>'
+        f'<div class="group-item top-item top-2">{render_card(cards[1][0], cards[1][1])}</div>'
+        f'<div class="group-item top-item top-3">{render_card(cards[2][0], cards[2][1])}</div>'
+        f'<div class="group-item bottom-item bottom-1">{render_card(cards[3][0], cards[3][1], bottom_large=True)}</div>'
+        f'<div class="group-item bottom-item bottom-2">{render_card(cards[4][0], cards[4][1], bottom_large=True)}</div>'
         "</div></div>"
     )
 
@@ -464,30 +466,31 @@ div[data-testid="stAppViewContainer"] > .main {
     flex: 0 0 64px;
 }
 
+/* 오른쪽 그룹 전체 높이를 왼쪽 큰 카드 높이감과 맞추기 */
 .group-grid-five {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.group-row {
     display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: 142px 170px;
     gap: 10px;
 }
 
-.group-row-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+.top-1 { grid-column: 1 / span 2; grid-row: 1; }
+.top-2 { grid-column: 3 / span 2; grid-row: 1; }
+.top-3 { grid-column: 5 / span 2; grid-row: 1; }
+
+.bottom-1 { grid-column: 1 / span 3; grid-row: 2; }
+.bottom-2 { grid-column: 4 / span 3; grid-row: 2; }
+
+.group-item {
+    min-width: 0;
+    min-height: 0;
 }
 
-.group-row-bottom {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.group-gap {
-    width: 100%;
+.group-item > div {
     height: 100%;
 }
 
+/* 공통 카드 */
 .feature-card, .prize-card {
     border: 2.5px solid #3B4F38;
     background: rgba(255,255,255,0.94);
@@ -508,8 +511,16 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .prize-card {
-    height: 146px;
+    height: 100%;
+    min-height: 142px;
     padding: 8px 8px 9px 8px;
+}
+
+/* 아래 큰 카드 전용 */
+.bottom-large-card {
+    min-height: 170px;
+    padding: 10px 10px 12px 10px;
+    border-radius: 22px;
 }
 
 .title {
@@ -529,9 +540,16 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .prize-card .title {
-    min-height: 46px;
+    min-height: 42px;
     font-size: 15px;
     line-height: 1.08;
+}
+
+.bottom-large-card .title {
+    min-height: 54px;
+    font-size: 16px;
+    line-height: 1.08;
+    padding-top: 2px;
 }
 
 .value-zone {
@@ -567,6 +585,10 @@ div[data-testid="stAppViewContainer"] > .main {
     color: #3B4F38;
 }
 
+.bottom-large-card .value {
+    font-size: 52px;
+}
+
 .qty-line {
     font-size: 34px;
     font-weight: 800;
@@ -586,6 +608,11 @@ div[data-testid="stAppViewContainer"] > .main {
     margin-top: 5px;
 }
 
+.bottom-large-card .qty-line {
+    font-size: 24px;
+    margin-top: 6px;
+}
+
 .odds-zone {
     min-height: 70px;
     display: flex;
@@ -596,8 +623,13 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .prize-card .odds-zone {
-    min-height: 36px;
-    flex: 0 0 36px;
+    min-height: 34px;
+    flex: 0 0 34px;
+}
+
+.bottom-large-card .odds-zone {
+    min-height: 44px;
+    flex: 0 0 44px;
 }
 
 .odds-label {
@@ -613,6 +645,11 @@ div[data-testid="stAppViewContainer"] > .main {
 .prize-card .odds-label {
     font-size: 10px;
     margin-bottom: 3px;
+}
+
+.bottom-large-card .odds-label {
+    font-size: 10px;
+    margin-bottom: 4px;
 }
 
 .odds-row {
@@ -631,6 +668,10 @@ div[data-testid="stAppViewContainer"] > .main {
 
 .prize-card .odds-value {
     font-size: 16px;
+}
+
+.bottom-large-card .odds-value {
+    font-size: 17px;
 }
 
 .low-card {
@@ -877,9 +918,14 @@ div[data-testid="stAppViewContainer"] > .main {
         grid-template-columns: 1fr;
     }
 
-    .group-row-3,
-    .group-row-bottom {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+    .group-grid-five {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: auto auto auto;
+    }
+
+    .top-1, .top-2, .top-3, .bottom-1, .bottom-2 {
+        grid-column: auto;
+        grid-row: auto;
     }
 
     .feature-card {
@@ -894,7 +940,8 @@ div[data-testid="stAppViewContainer"] > .main {
         font-size: 70px;
     }
 
-    .prize-card .value {
+    .prize-card .value,
+    .bottom-large-card .value {
         font-size: 42px;
     }
 
