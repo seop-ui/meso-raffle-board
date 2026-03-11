@@ -174,17 +174,22 @@ def safe_text(value) -> str:
 def render_group_five(group_title, cards):
     """
     cards: [(title, item), ...] 총 5개
-    첫 줄 3개 / 둘째 줄 2개 가운데 정렬
+    첫 줄 3개 / 둘째 줄 3칸 그리드(가운데 빈칸)
     """
     top_row = "".join(render_card(title, item) for title, item in cards[:3])
-    bottom_row = "".join(render_card(title, item) for title, item in cards[3:])
+
+    bottom_row = (
+        render_card(cards[3][0], cards[3][1])
+        + '<div class="group-gap"></div>'
+        + render_card(cards[4][0], cards[4][1])
+    )
 
     return (
         '<div class="group">'
         f'<div class="group-title">{group_title}</div>'
         '<div class="group-grid-five">'
         f'<div class="group-row group-row-3">{top_row}</div>'
-        f'<div class="group-row group-row-2">{bottom_row}</div>'
+        f'<div class="group-row group-row-bottom">{bottom_row}</div>'
         "</div></div>"
     )
 
@@ -474,10 +479,13 @@ div[data-testid="stAppViewContainer"] > .main {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.group-row-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 66.66%;
-    margin: 0 auto;
+.group-row-bottom {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.group-gap {
+    width: 100%;
+    height: 100%;
 }
 
 .feature-card, .prize-card {
@@ -869,12 +877,9 @@ div[data-testid="stAppViewContainer"] > .main {
         grid-template-columns: 1fr;
     }
 
-    .group-row-3 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .group-row-2 {
-        width: 100%;
+    .group-row-3,
+    .group-row-bottom {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .feature-card {
