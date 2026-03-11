@@ -171,6 +171,24 @@ def safe_text(value) -> str:
     return "" if text.lower() == "nan" else text
 
 
+def render_group_five(group_title, cards):
+    """
+    cards: [(title, item), ...] 총 5개
+    첫 줄 3개 / 둘째 줄 2개 가운데 정렬
+    """
+    top_row = "".join(render_card(title, item) for title, item in cards[:3])
+    bottom_row = "".join(render_card(title, item) for title, item in cards[3:])
+
+    return (
+        '<div class="group">'
+        f'<div class="group-title">{group_title}</div>'
+        '<div class="group-grid-five">'
+        f'<div class="group-row group-row-3">{top_row}</div>'
+        f'<div class="group-row group-row-2">{bottom_row}</div>'
+        "</div></div>"
+    )
+
+
 # =========================================================
 # Prize Number 페이지
 # =========================================================
@@ -282,11 +300,13 @@ off_bb = get_prize("80Off", "BB Laser")
 off_sylfirm = get_prize("80Off", "SylfirmX RF Microneedling")
 off_oligio = get_prize("80Off", "Oligio Lifting")
 off_ultherapy = get_prize("80Off", "Ultherapy Prime")
+off_thermage = get_prize("80Off", "Thermage")
 
 free_bb = get_prize("Free", "BB Laser")
 free_sylfirm = get_prize("Free", "SylfirmX RF Microneedling")
 free_oligio = get_prize("Free", "Oligio Lifting")
 free_ultherapy = get_prize("Free", "Ultherapy Prime")
+free_thermage = get_prize("Free", "Thermage")
 
 detail_df = df[
     df["Prize"].notna()
@@ -331,11 +351,11 @@ div[data-testid="stAppViewContainer"] > .main {
 
 .main-title {
     text-align: center;
-    font-size: 64px;
+    font-size: 58px;
     font-weight: 900;
-    letter-spacing: -1.4px;
+    letter-spacing: -1.2px;
     line-height: 1.02;
-    margin: 0 0 24px 0;
+    margin: 0 0 18px 0;
     color: #3B4F38;
 }
 
@@ -357,25 +377,25 @@ div[data-testid="stAppViewContainer"] > .main {
 .summary-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 14px;
+    margin-bottom: 14px;
 }
 
 .summary-card {
     border: 2.5px solid #3B4F38;
     background: rgba(255,255,255,0.92);
     border-radius: 20px;
-    min-height: 108px;
+    min-height: 98px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 14px 10px;
+    padding: 12px 10px;
     box-sizing: border-box;
 }
 
 .summary-label {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
     letter-spacing: 0.9px;
     text-transform: uppercase;
@@ -386,7 +406,7 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .summary-value {
-    font-size: 50px;
+    font-size: 44px;
     font-weight: 900;
     line-height: 1;
     text-align: center;
@@ -395,22 +415,22 @@ div[data-testid="stAppViewContainer"] > .main {
 
 .board {
     display: grid;
-    grid-template-columns: 360px minmax(0, 1fr);
-    gap: 16px;
+    grid-template-columns: 335px minmax(0, 1fr);
+    gap: 14px;
     align-items: start;
 }
 
 .left-column {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 12px;
     align-items: stretch;
 }
 
 .right-column {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 12px;
     align-items: start;
 }
 
@@ -424,32 +444,46 @@ div[data-testid="stAppViewContainer"] > .main {
     border: 2.5px solid #3B4F38;
     background: #CFD4C2;
     border-radius: 16px;
-    height: 72px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 10px 14px;
-    font-size: 20px;
+    padding: 8px 12px;
+    font-size: 18px;
     font-weight: 900;
     line-height: 1.15;
     margin-bottom: 10px;
     box-sizing: border-box;
     color: #32452F;
-    flex: 0 0 72px;
+    flex: 0 0 64px;
 }
 
-.group-grid {
+.group-grid-five {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.group-row {
     display: grid;
+    gap: 10px;
+}
+
+.group-row-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.group-row-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    grid-auto-rows: 176px;
+    width: 66.66%;
+    margin: 0 auto;
 }
 
 .feature-card, .prize-card {
     border: 2.5px solid #3B4F38;
     background: rgba(255,255,255,0.94);
-    border-radius: 22px;
+    border-radius: 20px;
     width: 100%;
     box-sizing: border-box;
     color: #3B4F38;
@@ -461,25 +495,25 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .feature-card {
-    height: 446px;
-    padding: 12px 10px 14px 10px;
+    height: 404px;
+    padding: 10px 8px 12px 8px;
 }
 
 .prize-card {
-    height: 176px;
-    padding: 8px 8px 10px 8px;
+    height: 146px;
+    padding: 8px 8px 9px 8px;
 }
 
 .title {
-    min-height: 96px;
+    min-height: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 0 10px;
-    font-size: 20px;
+    padding: 0 8px;
+    font-size: 18px;
     font-weight: 800;
-    line-height: 1.16;
+    line-height: 1.14;
     word-break: keep-all;
     overflow-wrap: anywhere;
     box-sizing: border-box;
@@ -487,9 +521,9 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .prize-card .title {
-    min-height: 50px;
-    font-size: 18px;
-    line-height: 1.12;
+    min-height: 46px;
+    font-size: 15px;
+    line-height: 1.08;
 }
 
 .value-zone {
@@ -510,7 +544,7 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .feature-card .value {
-    font-size: 86px;
+    font-size: 76px;
     font-weight: 900;
     line-height: 0.95;
     letter-spacing: -2px;
@@ -518,15 +552,15 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .prize-card .value {
-    font-size: 62px;
+    font-size: 44px;
     font-weight: 900;
     line-height: 0.95;
-    letter-spacing: -1.2px;
+    letter-spacing: -1px;
     color: #3B4F38;
 }
 
 .qty-line {
-    font-size: 36px;
+    font-size: 34px;
     font-weight: 800;
     line-height: 1;
     letter-spacing: -0.6px;
@@ -535,42 +569,42 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .feature-card .qty-line {
-    font-size: 38px;
-    margin-top: 12px;
+    font-size: 34px;
+    margin-top: 10px;
 }
 
 .prize-card .qty-line {
-    font-size: 24px;
-    margin-top: 6px;
+    font-size: 20px;
+    margin-top: 5px;
 }
 
 .odds-zone {
-    min-height: 76px;
+    min-height: 70px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex: 0 0 76px;
+    flex: 0 0 70px;
 }
 
 .prize-card .odds-zone {
-    min-height: 42px;
-    flex: 0 0 42px;
+    min-height: 36px;
+    flex: 0 0 36px;
 }
 
 .odds-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
-    letter-spacing: 1.2px;
+    letter-spacing: 1.1px;
     line-height: 1;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
     color: #5A6B57;
 }
 
 .prize-card .odds-label {
-    font-size: 11px;
-    margin-bottom: 4px;
+    font-size: 10px;
+    margin-bottom: 3px;
 }
 
 .odds-row {
@@ -581,14 +615,14 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .odds-value {
-    font-size: 34px;
+    font-size: 30px;
     font-weight: 900;
     line-height: 1;
     color: #2F422C;
 }
 
 .prize-card .odds-value {
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .low-card {
@@ -602,14 +636,14 @@ div[data-testid="stAppViewContainer"] > .main {
 }
 
 .soldout-main {
-    font-size: 28px !important;
+    font-size: 24px !important;
     line-height: 1.1;
     text-align: center;
     font-weight: 900;
 }
 
 .soldout-sub {
-    font-size: 14px !important;
+    font-size: 13px !important;
     font-weight: 800;
 }
 
@@ -811,11 +845,11 @@ div[data-testid="stAppViewContainer"] > .main {
     }
 
     .main-title {
-        font-size: 52px;
+        font-size: 46px;
     }
 
     .number-title {
-        font-size: 34px;
+        font-size: 32px;
         margin-bottom: 6px;
     }
 
@@ -835,20 +869,28 @@ div[data-testid="stAppViewContainer"] > .main {
         grid-template-columns: 1fr;
     }
 
+    .group-row-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .group-row-2 {
+        width: 100%;
+    }
+
     .feature-card {
-        height: 410px;
+        height: 380px;
     }
 
     .summary-value {
-        font-size: 40px;
+        font-size: 38px;
     }
 
     .feature-card .value {
-        font-size: 76px;
+        font-size: 70px;
     }
 
     .prize-card .value {
-        font-size: 58px;
+        font-size: 42px;
     }
 
     .tv-grid-row {
@@ -902,27 +944,24 @@ if page == "board":
         + "</div>"
     )
 
-    group1_html = (
-        '<div class="group">'
-        '<div class="group-title">80% Off MeSO Signature Treatment</div>'
-        '<div class="group-grid">'
-        + render_card("BB Laser", off_bb)
-        + render_card("SylfirmX RF", off_sylfirm)
-        + render_card("Oligio Lifting", off_oligio)
-        + render_card("Ultherapy Prime", off_ultherapy)
-        + "</div></div>"
-    )
+    group1_cards = [
+        ("BB Laser", off_bb),
+        ("SylfirmX RF", off_sylfirm),
+        ("Oligio Lifting", off_oligio),
+        ("Ultherapy Prime", off_ultherapy),
+        ("Thermage", off_thermage),
+    ]
 
-    group2_html = (
-        '<div class="group">'
-        '<div class="group-title">Free MeSO Signature Treatment</div>'
-        '<div class="group-grid">'
-        + render_card("BB Laser", free_bb)
-        + render_card("SylfirmX RF", free_sylfirm)
-        + render_card("Oligio Lifting", free_oligio)
-        + render_card("Ultherapy Prime", free_ultherapy)
-        + "</div></div>"
-    )
+    group2_cards = [
+        ("BB Laser", free_bb),
+        ("SylfirmX RF", free_sylfirm),
+        ("Oligio Lifting", free_oligio),
+        ("Ultherapy Prime", free_ultherapy),
+        ("Thermage", free_thermage),
+    ]
+
+    group1_html = render_group_five("80% Off MeSO Signature Treatment", group1_cards)
+    group2_html = render_group_five("Free MeSO Signature Treatment", group2_cards)
 
     right_html = (
         '<div class="right-column">'
