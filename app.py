@@ -15,7 +15,7 @@ st.set_page_config(
 # =========================================================
 st_autorefresh(interval=1000, key="raffle_refresh")
 
-BOARD_SECONDS = 5
+BOARD_SECONDS = 10
 NUMBERS_1_SECONDS = 5
 NUMBERS_2_SECONDS = 5
 CYCLE_SECONDS = BOARD_SECONDS + NUMBERS_1_SECONDS + NUMBERS_2_SECONDS
