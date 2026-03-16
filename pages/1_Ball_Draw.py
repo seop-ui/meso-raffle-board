@@ -17,7 +17,7 @@ st.set_page_config(
 SPREADSHEET_ID = "1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk"
 NUMBER_SHEET_NAME = "Prize Number"
 
-ROLL_REFRESH_MS = 120   # 번호 바뀌는 속도
+ROLL_REFRESH_MS = 120   # 번호 바뀌는 속도(ms)
 APP_TITLE = "Raffle Ball Draw"
 
 # =========================================================
@@ -30,6 +30,7 @@ def build_sheet_csv_url(spreadsheet_id: str, sheet_name: str) -> str:
         f"?tqx=out:csv&sheet={encoded_sheet}"
     )
 
+
 NUMBER_URL = build_sheet_csv_url(SPREADSHEET_ID, NUMBER_SHEET_NAME)
 
 # =========================================================
@@ -41,14 +42,17 @@ def load_number_data():
     df.columns = [str(c).strip() for c in df.columns]
     return df
 
+
 def safe_text(value) -> str:
     if pd.isna(value):
         return ""
     text = str(value).strip()
     return "" if text.lower() == "nan" else text
 
+
 def normalize_status(value) -> str:
     return safe_text(value).lower()
+
 
 # =========================================================
 # 세션 상태 초기화
@@ -102,10 +106,6 @@ number_df["Winning Status"] = number_df["Winning Status"].apply(safe_text)
 
 # 시트에서 이미 Winner 처리된 번호 제외
 base_pool_df = number_df[
-    normalize_status("").__class__ == str  # 형식 유지용
-].copy()
-
-base_pool_df = number_df[
     ~number_df["Winning Status"].apply(normalize_status).eq("winner")
 ].copy()
 
@@ -128,10 +128,12 @@ if st.session_state.rolling and not remaining_df.empty:
 def start_roll():
     if remaining_df.empty:
         return
+
     st.session_state.rolling = True
     preview_row = remaining_df.sample(1).iloc[0]
     st.session_state.display_number = int(preview_row["Number"])
     st.session_state.display_prize = safe_text(preview_row["Prize"])
+
 
 def stop_and_draw():
     if remaining_df.empty:
@@ -147,7 +149,9 @@ def stop_and_draw():
     st.session_state.display_prize = winner_prize
     st.session_state.last_winner_number = winner_number
     st.session_state.last_winner_prize = winner_prize
-    st.session_state.session_drawn_numbers.append(winner_number)
+
+    if winner_number not in st.session_state.session_drawn_numbers:
+        st.session_state.session_drawn_numbers.append(winner_number)
 
     st.session_state.history.insert(
         0,
@@ -157,6 +161,7 @@ def stop_and_draw():
             "Draw Time": time.strftime("%Y-%m-%d %H:%M:%S"),
         },
     )
+
 
 def undo_last_draw():
     if not st.session_state.history:
@@ -173,6 +178,7 @@ def undo_last_draw():
     st.session_state.display_number = None
     st.session_state.display_prize = ""
 
+
 def reset_session_draws():
     st.session_state.rolling = False
     st.session_state.display_number = None
@@ -182,13 +188,14 @@ def reset_session_draws():
     st.session_state.session_drawn_numbers = []
     st.session_state.history = []
 
+
 # =========================================================
 # CSS
 # =========================================================
 st.markdown(
     """
     <style>
-    html, body, [class*="css"] {
+    html, body {
         background: #F7F7F5;
         color: #2F422C;
     }
@@ -480,8 +487,9 @@ st.markdown(
 st.markdown(f'<div class="main-title">{APP_TITLE}</div>', unsafe_allow_html=True)
 
 total_count = len(number_df)
-already_winner_count = len(number_df[number_df["Winning Status"].apply(normalize_status) == "winner"])
-session_draw_count = len(st.session_state.session_drawn_numbers)
+already_winner_count = len(
+    number_df[number_df["Winning Status"].apply(normalize_status) == "winner"]
+)
 remaining_count = len(remaining_df)
 
 stats_html = f"""
@@ -513,12 +521,20 @@ with btn_col1:
         st.rerun()
 
 with btn_col2:
-    if st.button("STOP & DRAW", use_container_width=True, disabled=(not st.session_state.rolling and remaining_df.empty)):
+    if st.button(
+        "STOP & DRAW",
+        use_container_width=True,
+        disabled=(not st.session_state.rolling and remaining_df.empty),
+    ):
         stop_and_draw()
         st.rerun()
 
 with btn_col3:
-    if st.button("UNDO LAST DRAW", use_container_width=True, disabled=(len(st.session_state.history) == 0)):
+    if st.button(
+        "UNDO LAST DRAW",
+        use_container_width=True,
+        disabled=(len(st.session_state.history) == 0),
+    ):
         undo_last_draw()
         st.rerun()
 
@@ -534,15 +550,8 @@ ball_number = st.session_state.display_number
 ball_prize = st.session_state.display_prize
 rolling_class = "rolling" if st.session_state.rolling else ""
 
-if ball_number is None:
-    display_number = "?"
-else:
-    display_number = str(ball_number)
-
-if ball_prize == "":
-    display_prize = "Ready to draw"
-else:
-    display_prize = ball_prize
+display_number = "?" if ball_number is None else str(ball_number)
+display_prize = "Ready to draw" if ball_prize == "" else ball_prize
 
 history_html = ""
 for item in st.session_state.history:
@@ -553,6 +562,13 @@ for item in st.session_state.history:
         <div class="history-time">{item['Draw Time']}</div>
     </div>
     """
+
+latest_winner_number = (
+    f"No. {st.session_state.last_winner_number}"
+    if st.session_state.last_winner_number is not None
+    else "-"
+)
+latest_winner_prize = st.session_state.last_winner_prize if st.session_state.last_winner_prize else ""
 
 main_html = f"""
 <div class="draw-layout">
@@ -571,9 +587,9 @@ main_html = f"""
                 <div class="winner-banner">
                     <div class="winner-banner-label">Latest Winner</div>
                     <div class="winner-banner-value">
-                        {"No. " + str(st.session_state.last_winner_number) if st.session_state.last_winner_number is not None else "-"}
+                        {latest_winner_number}
                         <br>
-                        {st.session_state.last_winner_prize if st.session_state.last_winner_prize else ""}
+                        {latest_winner_prize}
                     </div>
                 </div>
             </div>
