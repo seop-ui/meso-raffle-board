@@ -1,5 +1,4 @@
 import time
-import textwrap
 from urllib.parse import quote
 
 import pandas as pd
@@ -72,6 +71,9 @@ if "last_winner_number" not in st.session_state:
 if "last_winner_prize" not in st.session_state:
     st.session_state.last_winner_prize = ""
 
+if "last_winner_ball_color" not in st.session_state:
+    st.session_state.last_winner_ball_color = "green"
+
 if "session_drawn_numbers" not in st.session_state:
     st.session_state.session_drawn_numbers = []
 
@@ -103,21 +105,42 @@ number_df["Number"] = number_df["Number"].astype(int)
 number_df["Prize"] = number_df["Prize"].apply(safe_text)
 number_df["Winning Status"] = number_df["Winning Status"].apply(safe_text)
 
-base_pool_df = number_df[
-    ~number_df["Winning Status"].apply(normalize_status).eq("winner")
-].copy()
 
-remaining_df = base_pool_df[
-    ~base_pool_df["Number"].isin(st.session_state.session_drawn_numbers)
+def get_ball_color(prize_text: str, winning_status_text: str) -> str:
+    status_norm = normalize_status(winning_status_text)
+    has_prize = safe_text(prize_text) != ""
+
+    if has_prize and status_norm == "not a winner":
+        return "green"
+    return "gray"
+
+
+# 전체 개수
+total_count = len(number_df)
+
+# 현재 시트 기준 winner 개수
+already_winner_count = len(
+    number_df[number_df["Winning Status"].apply(normalize_status) == "winner"]
+)
+
+# 현재 앱 세션에서 이미 뽑은 번호 제외
+remaining_df = number_df[
+    ~number_df["Number"].isin(st.session_state.session_drawn_numbers)
 ].copy()
 
 remaining_df = remaining_df.sort_values("Number")
 
+remaining_count = len(remaining_df)
+
+# rolling 중이면 화면 번호를 계속 랜덤하게 갱신
 if st.session_state.rolling and not remaining_df.empty:
     preview_row = remaining_df.sample(1).iloc[0]
     st.session_state.display_number = int(preview_row["Number"])
     st.session_state.display_prize = safe_text(preview_row["Prize"])
-
+    st.session_state.last_winner_ball_color = get_ball_color(
+        preview_row["Prize"],
+        preview_row["Winning Status"],
+    )
 
 # =========================================================
 # 액션 함수
@@ -130,6 +153,10 @@ def start_roll():
     st.session_state.rolling = True
     st.session_state.display_number = int(preview_row["Number"])
     st.session_state.display_prize = safe_text(preview_row["Prize"])
+    st.session_state.last_winner_ball_color = get_ball_color(
+        preview_row["Prize"],
+        preview_row["Winning Status"],
+    )
 
 
 def stop_and_draw():
@@ -140,12 +167,15 @@ def stop_and_draw():
     winner_row = remaining_df.sample(1).iloc[0]
     winner_number = int(winner_row["Number"])
     winner_prize = safe_text(winner_row["Prize"])
+    winner_status = safe_text(winner_row["Winning Status"])
+    winner_ball_color = get_ball_color(winner_prize, winner_status)
 
     st.session_state.rolling = False
     st.session_state.display_number = winner_number
-    st.session_state.display_prize = winner_prize
+    st.session_state.display_prize = winner_prize if winner_prize else "No Prize"
     st.session_state.last_winner_number = winner_number
-    st.session_state.last_winner_prize = winner_prize
+    st.session_state.last_winner_prize = winner_prize if winner_prize else "No Prize"
+    st.session_state.last_winner_ball_color = winner_ball_color
 
     if winner_number not in st.session_state.session_drawn_numbers:
         st.session_state.session_drawn_numbers.append(winner_number)
@@ -154,7 +184,9 @@ def stop_and_draw():
         0,
         {
             "Number": winner_number,
-            "Prize": winner_prize,
+            "Prize": winner_prize if winner_prize else "No Prize",
+            "Winning Status": winner_status,
+            "Ball Color": winner_ball_color,
             "Draw Time": time.strftime("%Y-%m-%d %H:%M:%S"),
         },
     )
@@ -174,6 +206,7 @@ def undo_last_draw():
     st.session_state.last_winner_prize = ""
     st.session_state.display_number = None
     st.session_state.display_prize = ""
+    st.session_state.last_winner_ball_color = "green"
 
 
 def reset_session_draws():
@@ -182,6 +215,7 @@ def reset_session_draws():
     st.session_state.display_prize = ""
     st.session_state.last_winner_number = None
     st.session_state.last_winner_prize = ""
+    st.session_state.last_winner_ball_color = "green"
     st.session_state.session_drawn_numbers = []
     st.session_state.history = []
 
@@ -189,324 +223,278 @@ def reset_session_draws():
 # =========================================================
 # CSS
 # =========================================================
-css = textwrap.dedent("""
-<style>
-html, body {
-    background: #F7F7F5;
-    color: #2F422C;
-}
-
-.block-container {
-    max-width: 1400px;
-    padding-top: 0.6rem;
-    padding-bottom: 0.8rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-}
-
-.main-title {
-    text-align: center;
-    font-size: 54px;
-    font-weight: 900;
-    line-height: 1.05;
-    letter-spacing: -1.2px;
-    margin-bottom: 18px;
-    color: #2F422C;
-}
-
-.top-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 18px;
-}
-
-.stat-card {
-    background: rgba(255,255,255,0.95);
-    border: 2.5px solid #3B4F38;
-    border-radius: 18px;
-    padding: 16px 10px;
-    text-align: center;
-}
-
-.stat-label {
-    font-size: 15px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: #52634F;
-    margin-bottom: 8px;
-}
-
-.stat-value {
-    font-size: 42px;
-    font-weight: 900;
-    line-height: 1;
-    color: #2F422C;
-}
-
-.draw-layout {
-    display: grid;
-    grid-template-columns: 1.35fr 0.65fr;
-    gap: 16px;
-    align-items: stretch;
-}
-
-.draw-panel, .side-panel {
-    background: rgba(255,255,255,0.95);
-    border: 2.5px solid #3B4F38;
-    border-radius: 24px;
-    box-sizing: border-box;
-}
-
-.draw-panel {
-    min-height: 680px;
-    padding: 24px 24px 22px 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.side-panel {
-    min-height: 680px;
-    padding: 18px 18px 16px 18px;
-    overflow: hidden;
-}
-
-.ball-stage {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 0 8px 0;
-}
-
-.ball-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-    width: 100%;
-}
-
-.ball {
-    width: 360px;
-    height: 360px;
-    border-radius: 50%;
-    border: 8px solid #2F422C;
-    background:
-        radial-gradient(circle at 30% 28%, #FFFFFF 0%, #F5FAF1 30%, #DDEAD5 68%, #C5D8BB 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow:
-        inset 0 12px 22px rgba(255,255,255,0.75),
-        inset 0 -14px 24px rgba(47,66,44,0.10),
-        0 18px 40px rgba(47,66,44,0.12);
-    position: relative;
-}
-
-.ball::before {
-    content: "";
-    position: absolute;
-    top: 42px;
-    left: 70px;
-    width: 120px;
-    height: 62px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.65);
-    transform: rotate(-18deg);
-}
-
-.ball-number {
-    font-size: 120px;
-    font-weight: 900;
-    line-height: 1;
-    color: #21351F;
-    letter-spacing: -4px;
-}
-
-.rolling .ball {
-    animation: pulseBall 0.55s ease-in-out infinite;
-}
-
-.rolling .ball-number {
-    animation: flickerNum 0.18s linear infinite;
-}
-
-.prize-box {
-    width: 100%;
-    min-height: 110px;
-    border: 2px solid #B6C3AE;
-    border-radius: 18px;
-    background: #FAFCF8;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 14px 16px;
-    text-align: center;
-}
-
-.prize-label {
-    font-size: 16px;
-    font-weight: 800;
-    color: #596956;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-}
-
-.prize-value {
-    font-size: 34px;
-    font-weight: 900;
-    line-height: 1.12;
-    color: #2F422C;
-    word-break: keep-all;
-    overflow-wrap: anywhere;
-}
-
-.winner-banner {
-    margin-top: 14px;
-    width: 100%;
-    border: 2.5px solid #2F422C;
-    border-radius: 18px;
-    background: linear-gradient(180deg, #EAF5E3 0%, #DCEBD3 100%);
-    padding: 16px 16px;
-    text-align: center;
-}
-
-.winner-banner-label {
-    font-size: 15px;
-    font-weight: 800;
-    color: #4F624B;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-}
-
-.winner-banner-value {
-    font-size: 30px;
-    font-weight: 900;
-    color: #1F351D;
-    line-height: 1.1;
-}
-
-.history-title {
-    font-size: 24px;
-    font-weight: 900;
-    line-height: 1.1;
-    margin-bottom: 12px;
-    text-align: center;
-    color: #2F422C;
-}
-
-.history-wrap {
-    height: 600px;
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-.history-card {
-    border: 2px solid #C8D1C2;
-    border-radius: 16px;
-    background: #FBFCFA;
-    padding: 12px 12px;
-    margin-bottom: 10px;
-}
-
-.history-number {
-    font-size: 28px;
-    font-weight: 900;
-    color: #21351F;
-    margin-bottom: 4px;
-}
-
-.history-prize {
-    font-size: 16px;
-    font-weight: 800;
-    color: #3E533B;
-    line-height: 1.15;
-    margin-bottom: 6px;
-    word-break: keep-all;
-    overflow-wrap: anywhere;
-}
-
-.history-time {
-    font-size: 12px;
-    color: #6D7B69;
-    font-weight: 700;
-}
-
-@keyframes pulseBall {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-}
-
-@keyframes flickerNum {
-    0% { opacity: 1; }
-    50% { opacity: 0.82; }
-    100% { opacity: 1; }
-}
-
-@media (max-width: 1200px) {
-    .top-stats {
-        grid-template-columns: 1fr;
+st.markdown(
+    """
+    <style>
+    html, body {
+        background: #F7F7F5;
+        color: #2F422C;
     }
 
-    .draw-layout {
-        grid-template-columns: 1fr;
+    .block-container {
+        max-width: 1420px;
+        padding-top: 0.4rem;
+        padding-bottom: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
-    .draw-panel, .side-panel {
-        min-height: auto;
+    .main-title {
+        text-align: center;
+        font-size: 54px;
+        font-weight: 900;
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        margin-bottom: 16px;
+        color: #2F422C;
     }
 
-    .ball {
-        width: 280px;
-        height: 280px;
+    .stat-card {
+        background: rgba(255,255,255,0.96);
+        border: 2.5px solid #3B4F38;
+        border-radius: 20px;
+        padding: 14px 10px;
+        text-align: center;
+        min-height: 95px;
+    }
+
+    .stat-label {
+        font-size: 15px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #52634F;
+        margin-bottom: 8px;
+    }
+
+    .stat-value {
+        font-size: 42px;
+        font-weight: 900;
+        line-height: 1;
+        color: #2F422C;
+    }
+
+    .panel-box {
+        background: rgba(255,255,255,0.96);
+        border: 2.5px solid #3B4F38;
+        border-radius: 24px;
+        padding: 24px 20px 20px 20px;
+        min-height: 760px;
+    }
+
+    .ball-wrap {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+        margin-bottom: 18px;
+    }
+
+    .ball-green, .ball-gray {
+        width: 320px;
+        height: 320px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-shadow:
+            inset 0 12px 22px rgba(255,255,255,0.75),
+            inset 0 -14px 24px rgba(47,66,44,0.10),
+            0 18px 40px rgba(47,66,44,0.12);
+    }
+
+    .ball-green {
+        border: 8px solid #2F422C;
+        background:
+            radial-gradient(circle at 30% 28%, #FFFFFF 0%, #F5FAF1 30%, #DDEAD5 68%, #C5D8BB 100%);
+    }
+
+    .ball-gray {
+        border: 8px solid #6F776E;
+        background:
+            radial-gradient(circle at 30% 28%, #FFFFFF 0%, #F1F2F1 28%, #DDDFDD 68%, #C9CDCA 100%);
+    }
+
+    .ball-green::before, .ball-gray::before {
+        content: "";
+        position: absolute;
+        top: 40px;
+        left: 68px;
+        width: 118px;
+        height: 60px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.62);
+        transform: rotate(-18deg);
     }
 
     .ball-number {
-        font-size: 94px;
+        font-size: 112px;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -4px;
     }
 
-    .prize-value {
-        font-size: 28px;
+    .ball-green .ball-number {
+        color: #21351F;
     }
-}
-</style>
-""")
-st.markdown(css, unsafe_allow_html=True)
+
+    .ball-gray .ball-number {
+        color: #5E655D;
+    }
+
+    .rolling .ball-green,
+    .rolling .ball-gray {
+        animation: pulseBall 0.55s ease-in-out infinite;
+    }
+
+    .rolling .ball-number {
+        animation: flickerNum 0.18s linear infinite;
+    }
+
+    .info-card {
+        background: #FAFCF8;
+        border: 2px solid #B6C3AE;
+        border-radius: 18px;
+        padding: 16px 14px;
+        text-align: center;
+        margin-top: 12px;
+    }
+
+    .info-label {
+        font-size: 15px;
+        font-weight: 800;
+        color: #596956;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .info-value {
+        font-size: 30px;
+        font-weight: 900;
+        line-height: 1.15;
+        color: #2F422C;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+    }
+
+    .history-title {
+        font-size: 26px;
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 14px;
+        text-align: center;
+        color: #2F422C;
+    }
+
+    .history-card {
+        border: 2px solid #C8D1C2;
+        border-radius: 16px;
+        background: #FBFCFA;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .history-number {
+        font-size: 26px;
+        font-weight: 900;
+        color: #21351F;
+        margin-bottom: 4px;
+    }
+
+    .history-prize {
+        font-size: 16px;
+        font-weight: 800;
+        color: #3E533B;
+        line-height: 1.15;
+        margin-bottom: 6px;
+    }
+
+    .history-meta {
+        font-size: 12px;
+        color: #6D7B69;
+        font-weight: 700;
+    }
+
+    .empty-history {
+        text-align: center;
+        color: #6D7B69;
+        font-weight: 700;
+        padding-top: 24px;
+    }
+
+    @keyframes pulseBall {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+    }
+
+    @keyframes flickerNum {
+        0% { opacity: 1; }
+        50% { opacity: 0.82; }
+        100% { opacity: 1; }
+    }
+
+    @media (max-width: 1200px) {
+        .ball-green, .ball-gray {
+            width: 260px;
+            height: 260px;
+        }
+
+        .ball-number {
+            font-size: 90px;
+        }
+
+        .info-value {
+            font-size: 24px;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # =========================================================
 # 상단 타이틀
 # =========================================================
-st.markdown(
-    f'<div class="main-title">{APP_TITLE}</div>',
-    unsafe_allow_html=True,
-)
+st.markdown(f'<div class="main-title">{APP_TITLE}</div>', unsafe_allow_html=True)
 
-total_count = len(number_df)
-already_winner_count = len(
-    number_df[number_df["Winning Status"].apply(normalize_status) == "winner"]
-)
-remaining_count = len(remaining_df)
+# =========================================================
+# 상단 통계
+# =========================================================
+col1, col2, col3 = st.columns(3)
 
-stats_html = textwrap.dedent(f"""
-<div class="top-stats">
-    <div class="stat-card">
-        <div class="stat-label">Total Numbers</div>
-        <div class="stat-value">{total_count}</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Already Winner in Sheet</div>
-        <div class="stat-value">{already_winner_count}</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-label">Remaining in This Draw</div>
-        <div class="stat-value">{remaining_count}</div>
-    </div>
-</div>
-""")
-st.markdown(stats_html, unsafe_allow_html=True)
+with col1:
+    st.markdown(
+        f"""
+        <div class="stat-card">
+            <div class="stat-label">Total Numbers</div>
+            <div class="stat-value">{total_count}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col2:
+    st.markdown(
+        f"""
+        <div class="stat-card">
+            <div class="stat-label">Already Winner in Sheet</div>
+            <div class="stat-value">{already_winner_count}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col3:
+    st.markdown(
+        f"""
+        <div class="stat-card">
+            <div class="stat-label">Remaining in This Draw</div>
+            <div class="stat-value">{remaining_count}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.write("")
 
 # =========================================================
 # 버튼
@@ -533,72 +521,95 @@ with btn_col4:
         reset_session_draws()
         st.rerun()
 
+st.write("")
+
 # =========================================================
 # 메인 화면
 # =========================================================
+left_col, right_col = st.columns([1.35, 0.65])
+
 ball_number = st.session_state.display_number
 ball_prize = st.session_state.display_prize
-rolling_class = "rolling" if st.session_state.rolling else ""
-
 display_number = "?" if ball_number is None else str(ball_number)
 display_prize = "Ready to draw" if ball_prize == "" else ball_prize
 
-history_html = ""
-for item in st.session_state.history:
-    history_html += f"""
-<div class="history-card">
-    <div class="history-number">No. {item['Number']}</div>
-    <div class="history-prize">{item['Prize']}</div>
-    <div class="history-time">{item['Draw Time']}</div>
-</div>
-"""
+if ball_number is None:
+    current_ball_color = "green"
+else:
+    current_ball_color = st.session_state.last_winner_ball_color
 
-latest_winner_number = (
-    f"No. {st.session_state.last_winner_number}"
-    if st.session_state.last_winner_number is not None
-    else "-"
-)
-latest_winner_prize = (
-    st.session_state.last_winner_prize
-    if st.session_state.last_winner_prize
-    else ""
-)
+rolling_class = "rolling" if st.session_state.rolling else ""
+ball_class = "ball-green" if current_ball_color == "green" else "ball-gray"
 
-empty_history_html = '<div style="text-align:center; color:#6D7B69; font-weight:700; padding-top:24px;">No draw history yet</div>'
+with left_col:
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
 
-main_html = textwrap.dedent(f"""
-<div class="draw-layout">
-    <div class="draw-panel {rolling_class}">
-        <div class="ball-stage">
-            <div class="ball-wrap">
-                <div class="ball">
-                    <div class="ball-number">{display_number}</div>
-                </div>
-
-                <div class="prize-box">
-                    <div class="prize-label">Prize</div>
-                    <div class="prize-value">{display_prize}</div>
-                </div>
-
-                <div class="winner-banner">
-                    <div class="winner-banner-label">Latest Winner</div>
-                    <div class="winner-banner-value">
-                        {latest_winner_number}<br>{latest_winner_prize}
-                    </div>
-                </div>
+    st.markdown(
+        f"""
+        <div class="ball-wrap {rolling_class}">
+            <div class="{ball_class}">
+                <div class="ball-number">{display_number}</div>
             </div>
         </div>
-    </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    <div class="side-panel">
-        <div class="history-title">Draw History</div>
-        <div class="history-wrap">
-            {history_html if history_html else empty_history_html}
+    st.markdown(
+        f"""
+        <div class="info-card">
+            <div class="info-label">Prize</div>
+            <div class="info-value">{display_prize}</div>
         </div>
-    </div>
-</div>
-""")
-st.markdown(main_html, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
+
+    latest_winner_number = (
+        f"No. {st.session_state.last_winner_number}"
+        if st.session_state.last_winner_number is not None
+        else "-"
+    )
+    latest_winner_prize = (
+        st.session_state.last_winner_prize
+        if st.session_state.last_winner_prize
+        else ""
+    )
+
+    st.markdown(
+        f"""
+        <div class="info-card">
+            <div class="info-label">Latest Winner</div>
+            <div class="info-value">{latest_winner_number}<br>{latest_winner_prize}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with right_col:
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="history-title">Draw History</div>', unsafe_allow_html=True)
+
+    if st.session_state.history:
+        for item in st.session_state.history:
+            color_text = "Green Ball" if item["Ball Color"] == "green" else "Gray Ball"
+            st.markdown(
+                f"""
+                <div class="history-card">
+                    <div class="history-number">No. {item["Number"]}</div>
+                    <div class="history-prize">{item["Prize"]}</div>
+                    <div class="history-meta">{item["Winning Status"]} · {color_text}</div>
+                    <div class="history-meta">{item["Draw Time"]}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.markdown('<div class="empty-history">No draw history yet</div>', unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
 # 세션 추첨 결과 다운로드
@@ -612,11 +623,3 @@ if st.session_state.history:
         mime="text/csv",
         use_container_width=True,
     )
-
-# =========================================================
-# 안내
-# =========================================================
-st.info(
-    "이 버전은 Google Sheet를 읽어와서 추첨만 진행합니다. "
-    "즉, 화면에서 뽑힌 결과를 Google Sheet의 Winning Status에 자동 반영하지는 않습니다."
-)
