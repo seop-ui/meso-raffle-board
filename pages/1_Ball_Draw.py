@@ -230,7 +230,8 @@ st.markdown(
         font-weight: 900;
         line-height: 1.05;
         letter-spacing: -1.2px;
-        margin-bottom: 20px;
+        margin-top: 26px;
+        margin-bottom: 16px;
         color: #2F422C;
     }}
 
