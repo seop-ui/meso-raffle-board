@@ -15,6 +15,7 @@ st.set_page_config(
 # =========================================================
 SPREADSHEET_ID = "1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk"
 NUMBER_SHEET_NAME = "Prize Number"
+PRIZEBOARD_SHEET_NAME = "Prize Board"
 
 ROLL_REFRESH_MS = 120
 APP_TITLE = "Raffle Ball Draw"
@@ -31,6 +32,7 @@ def build_sheet_csv_url(spreadsheet_id: str, sheet_name: str) -> str:
 
 
 NUMBER_URL = build_sheet_csv_url(SPREADSHEET_ID, NUMBER_SHEET_NAME)
+PRIZEBOARD_URL = build_sheet_csv_url(SPREADSHEET_ID, PRIZEBOARD_SHEET_NAME)
 
 # =========================================================
 # 데이터 로드
@@ -42,6 +44,11 @@ def load_number_data():
     return df
 
 
+@st.cache_data(ttl=2)
+def load_prizeboard_raw():
+    return pd.read_csv(PRIZEBOARD_URL, header=None)
+
+
 def safe_text(value) -> str:
     if pd.isna(value):
         return ""
@@ -51,6 +58,11 @@ def safe_text(value) -> str:
 
 def normalize_status(value) -> str:
     return safe_text(value).lower()
+
+
+def format_metric(value) -> str:
+    text = safe_text(value)
+    return text if text != "" else "-"
 
 
 def get_ball_color(prize_text: str, winning_status_text: str) -> str:
@@ -114,16 +126,20 @@ number_df["Winning Status"] = number_df["Winning Status"].apply(safe_text)
 
 total_count = len(number_df)
 
-already_winner_count = len(
-    number_df[number_df["Winning Status"].apply(normalize_status) == "winner"]
-)
-
 remaining_df = number_df[
     ~number_df["Number"].isin(st.session_state.session_drawn_numbers)
 ].copy()
 
 remaining_df = remaining_df.sort_values("Number")
-remaining_count = len(remaining_df)
+
+# Prize Board!E14, F14 읽기
+try:
+    prizeboard_raw = load_prizeboard_raw()
+    remaining_prizes = format_metric(prizeboard_raw.iloc[13, 4])   # E14
+    winning_probability = format_metric(prizeboard_raw.iloc[13, 5])  # F14
+except Exception:
+    remaining_prizes = "-"
+    winning_probability = "-"
 
 # rolling 중 미리보기 번호 계속 변경
 if st.session_state.rolling and not remaining_df.empty:
@@ -342,6 +358,15 @@ st.markdown(
         overflow-wrap: anywhere;
     }
 
+    .notice-text {
+        text-align: center;
+        margin-top: 30px;
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: #6B7468;
+    }
+
     @keyframes pulseBall {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.03); }
@@ -365,6 +390,10 @@ st.markdown(
 
         .bottom-value {
             font-size: 28px;
+        }
+
+        .notice-text {
+            font-size: 22px;
         }
     }
     </style>
@@ -397,8 +426,8 @@ with col2:
     st.markdown(
         f"""
         <div class="stat-card">
-            <div class="stat-label">Already Winner in Sheet</div>
-            <div class="stat-value">{already_winner_count}</div>
+            <div class="stat-label">Remaining Prizes</div>
+            <div class="stat-value">{remaining_prizes}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -408,8 +437,8 @@ with col3:
     st.markdown(
         f"""
         <div class="stat-card">
-            <div class="stat-label">Remaining in This Draw</div>
-            <div class="stat-value">{remaining_count}</div>
+            <div class="stat-label">Winning Probability</div>
+            <div class="stat-value">{winning_probability}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -428,7 +457,11 @@ with btn_col1:
         st.rerun()
 
 with btn_col2:
-    if st.button("STOP & DRAW", use_container_width=True, disabled=(not st.session_state.rolling and remaining_df.empty)):
+    if st.button(
+        "STOP & DRAW",
+        use_container_width=True,
+        disabled=(not st.session_state.rolling and remaining_df.empty),
+    ):
         stop_and_draw()
         st.rerun()
 
@@ -498,10 +531,15 @@ st.markdown(
 
 st.markdown("</div>", unsafe_allow_html=True)
 
+# =========================================================
+# 안내 문구
+# =========================================================
 st.markdown(
-    "<div style='text-align:center; margin-top:30px; font-size:16px; color:#6B7468;'>"
-    "The rolling ball animation is for visual effect only. "
-    "The actual number is randomly selected when the draw stops."
-    "</div>",
+    """
+    <div class="notice-text">
+        The rolling ball animation is for visual effect only.
+        The actual number is randomly selected when the draw stops.
+    </div>
+    """,
     unsafe_allow_html=True,
 )
