@@ -175,20 +175,6 @@ def stop_and_draw():
         st.session_state.session_drawn_numbers.append(winner_number)
 
 
-def undo_last_draw():
-    if not st.session_state.session_drawn_numbers:
-        return
-
-    st.session_state.session_drawn_numbers.pop()
-
-    st.session_state.last_winner_number = None
-    st.session_state.last_winner_prize = ""
-    st.session_state.display_number = None
-    st.session_state.display_prize = ""
-    st.session_state.display_ball_color = "green"
-    st.session_state.rolling = False
-
-
 def reset_session_draws():
     st.session_state.rolling = False
     st.session_state.display_number = None
@@ -253,18 +239,18 @@ st.markdown(
     }
 
     .main-panel {
-        background: rgba(255,255,255,0.96);
-        border: 2.5px solid #3B4F38;
-        border-radius: 26px;
-        padding: 28px 20px 22px 20px;
-        min-height: 820px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 8px 0 0 0;
+        min-height: 0;
     }
 
     .ball-wrap {
         display: flex;
         justify-content: center;
         align-items: center;
-        margin-top: 14px;
+        margin-top: 10px;
         margin-bottom: 22px;
     }
 
@@ -434,7 +420,7 @@ st.write("")
 # =========================================================
 # 버튼
 # =========================================================
-btn_col1, btn_col2, btn_col3, btn_col4 = st.columns([1, 1, 1, 1])
+btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
 
 with btn_col1:
     if st.button("START ROLLING", use_container_width=True, disabled=remaining_df.empty):
@@ -447,11 +433,6 @@ with btn_col2:
         st.rerun()
 
 with btn_col3:
-    if st.button("UNDO LAST DRAW", use_container_width=True, disabled=(len(st.session_state.session_drawn_numbers) == 0)):
-        undo_last_draw()
-        st.rerun()
-
-with btn_col4:
     if st.button("RESET SESSION", use_container_width=True):
         reset_session_draws()
         st.rerun()
