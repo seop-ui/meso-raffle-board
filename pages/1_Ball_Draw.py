@@ -21,7 +21,7 @@ PRIZEBOARD_SHEET_NAME = "Prize Board"
 ROLL_REFRESH_MS = 350
 
 # 하단 안내 문구 폰트 크기
-NOTICE_FONT_SIZE_PX = 26
+NOTICE_FONT_SIZE_PX = 22
 
 APP_TITLE = "Raffle Ball Draw"
 
@@ -230,7 +230,7 @@ st.markdown(
         font-weight: 900;
         line-height: 1.05;
         letter-spacing: -1.2px;
-        margin-top: 26px;
+        margin-top: 30px;
         margin-bottom: 16px;
         color: #2F422C;
     }}
