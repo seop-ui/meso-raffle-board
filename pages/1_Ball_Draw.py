@@ -1,5 +1,5 @@
-import random
 import time
+import textwrap
 from urllib.parse import quote
 
 import pandas as pd
@@ -17,7 +17,7 @@ st.set_page_config(
 SPREADSHEET_ID = "1oYJliCBrYC2qhAKNjGUbaTv4o6fxzpgGb8a-xSt1UOk"
 NUMBER_SHEET_NAME = "Prize Number"
 
-ROLL_REFRESH_MS = 120   # 번호 바뀌는 속도(ms)
+ROLL_REFRESH_MS = 120
 APP_TITLE = "Raffle Ball Draw"
 
 # =========================================================
@@ -78,7 +78,6 @@ if "session_drawn_numbers" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# rolling 중일 때만 자동 새로고침
 if st.session_state.rolling:
     st_autorefresh(interval=ROLL_REFRESH_MS, key="raffle_ball_refresh")
 
@@ -104,23 +103,21 @@ number_df["Number"] = number_df["Number"].astype(int)
 number_df["Prize"] = number_df["Prize"].apply(safe_text)
 number_df["Winning Status"] = number_df["Winning Status"].apply(safe_text)
 
-# 시트에서 이미 Winner 처리된 번호 제외
 base_pool_df = number_df[
     ~number_df["Winning Status"].apply(normalize_status).eq("winner")
 ].copy()
 
-# 현재 앱 세션에서 이미 뽑은 번호도 제외
 remaining_df = base_pool_df[
     ~base_pool_df["Number"].isin(st.session_state.session_drawn_numbers)
 ].copy()
 
 remaining_df = remaining_df.sort_values("Number")
 
-# rolling 중이면 화면 번호를 계속 랜덤하게 갱신
 if st.session_state.rolling and not remaining_df.empty:
     preview_row = remaining_df.sample(1).iloc[0]
     st.session_state.display_number = int(preview_row["Number"])
     st.session_state.display_prize = safe_text(preview_row["Prize"])
+
 
 # =========================================================
 # 액션 함수
@@ -129,8 +126,8 @@ def start_roll():
     if remaining_df.empty:
         return
 
-    st.session_state.rolling = True
     preview_row = remaining_df.sample(1).iloc[0]
+    st.session_state.rolling = True
     st.session_state.display_number = int(preview_row["Number"])
     st.session_state.display_prize = safe_text(preview_row["Prize"])
 
@@ -192,299 +189,300 @@ def reset_session_draws():
 # =========================================================
 # CSS
 # =========================================================
-st.markdown(
-    """
-    <style>
-    html, body {
-        background: #F7F7F5;
-        color: #2F422C;
-    }
+css = textwrap.dedent("""
+<style>
+html, body {
+    background: #F7F7F5;
+    color: #2F422C;
+}
 
-    .block-container {
-        max-width: 1400px;
-        padding-top: 0.6rem;
-        padding-bottom: 0.8rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
+.block-container {
+    max-width: 1400px;
+    padding-top: 0.6rem;
+    padding-bottom: 0.8rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
 
-    .main-title {
-        text-align: center;
-        font-size: 54px;
-        font-weight: 900;
-        line-height: 1.05;
-        letter-spacing: -1.2px;
-        margin-bottom: 18px;
-        color: #2F422C;
-    }
+.main-title {
+    text-align: center;
+    font-size: 54px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1.2px;
+    margin-bottom: 18px;
+    color: #2F422C;
+}
 
+.top-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.stat-card {
+    background: rgba(255,255,255,0.95);
+    border: 2.5px solid #3B4F38;
+    border-radius: 18px;
+    padding: 16px 10px;
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 15px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #52634F;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1;
+    color: #2F422C;
+}
+
+.draw-layout {
+    display: grid;
+    grid-template-columns: 1.35fr 0.65fr;
+    gap: 16px;
+    align-items: stretch;
+}
+
+.draw-panel, .side-panel {
+    background: rgba(255,255,255,0.95);
+    border: 2.5px solid #3B4F38;
+    border-radius: 24px;
+    box-sizing: border-box;
+}
+
+.draw-panel {
+    min-height: 680px;
+    padding: 24px 24px 22px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.side-panel {
+    min-height: 680px;
+    padding: 18px 18px 16px 18px;
+    overflow: hidden;
+}
+
+.ball-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 0 8px 0;
+}
+
+.ball-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+}
+
+.ball {
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    border: 8px solid #2F422C;
+    background:
+        radial-gradient(circle at 30% 28%, #FFFFFF 0%, #F5FAF1 30%, #DDEAD5 68%, #C5D8BB 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        inset 0 12px 22px rgba(255,255,255,0.75),
+        inset 0 -14px 24px rgba(47,66,44,0.10),
+        0 18px 40px rgba(47,66,44,0.12);
+    position: relative;
+}
+
+.ball::before {
+    content: "";
+    position: absolute;
+    top: 42px;
+    left: 70px;
+    width: 120px;
+    height: 62px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.65);
+    transform: rotate(-18deg);
+}
+
+.ball-number {
+    font-size: 120px;
+    font-weight: 900;
+    line-height: 1;
+    color: #21351F;
+    letter-spacing: -4px;
+}
+
+.rolling .ball {
+    animation: pulseBall 0.55s ease-in-out infinite;
+}
+
+.rolling .ball-number {
+    animation: flickerNum 0.18s linear infinite;
+}
+
+.prize-box {
+    width: 100%;
+    min-height: 110px;
+    border: 2px solid #B6C3AE;
+    border-radius: 18px;
+    background: #FAFCF8;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+.prize-label {
+    font-size: 16px;
+    font-weight: 800;
+    color: #596956;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.prize-value {
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1.12;
+    color: #2F422C;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.winner-banner {
+    margin-top: 14px;
+    width: 100%;
+    border: 2.5px solid #2F422C;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #EAF5E3 0%, #DCEBD3 100%);
+    padding: 16px 16px;
+    text-align: center;
+}
+
+.winner-banner-label {
+    font-size: 15px;
+    font-weight: 800;
+    color: #4F624B;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.winner-banner-value {
+    font-size: 30px;
+    font-weight: 900;
+    color: #1F351D;
+    line-height: 1.1;
+}
+
+.history-title {
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    text-align: center;
+    color: #2F422C;
+}
+
+.history-wrap {
+    height: 600px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.history-card {
+    border: 2px solid #C8D1C2;
+    border-radius: 16px;
+    background: #FBFCFA;
+    padding: 12px 12px;
+    margin-bottom: 10px;
+}
+
+.history-number {
+    font-size: 28px;
+    font-weight: 900;
+    color: #21351F;
+    margin-bottom: 4px;
+}
+
+.history-prize {
+    font-size: 16px;
+    font-weight: 800;
+    color: #3E533B;
+    line-height: 1.15;
+    margin-bottom: 6px;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.history-time {
+    font-size: 12px;
+    color: #6D7B69;
+    font-weight: 700;
+}
+
+@keyframes pulseBall {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+@keyframes flickerNum {
+    0% { opacity: 1; }
+    50% { opacity: 0.82; }
+    100% { opacity: 1; }
+}
+
+@media (max-width: 1200px) {
     .top-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 14px;
-        margin-bottom: 18px;
-    }
-
-    .stat-card {
-        background: rgba(255,255,255,0.95);
-        border: 2.5px solid #3B4F38;
-        border-radius: 18px;
-        padding: 16px 10px;
-        text-align: center;
-    }
-
-    .stat-label {
-        font-size: 15px;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #52634F;
-        margin-bottom: 8px;
-    }
-
-    .stat-value {
-        font-size: 42px;
-        font-weight: 900;
-        line-height: 1;
-        color: #2F422C;
+        grid-template-columns: 1fr;
     }
 
     .draw-layout {
-        display: grid;
-        grid-template-columns: 1.35fr 0.65fr;
-        gap: 16px;
-        align-items: stretch;
+        grid-template-columns: 1fr;
     }
 
     .draw-panel, .side-panel {
-        background: rgba(255,255,255,0.95);
-        border: 2.5px solid #3B4F38;
-        border-radius: 24px;
-        box-sizing: border-box;
-    }
-
-    .draw-panel {
-        min-height: 680px;
-        padding: 24px 24px 22px 24px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
-    .side-panel {
-        min-height: 680px;
-        padding: 18px 18px 16px 18px;
-        overflow: hidden;
-    }
-
-    .ball-stage {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 12px 0 8px 0;
-    }
-
-    .ball-wrap {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 18px;
-        width: 100%;
+        min-height: auto;
     }
 
     .ball {
-        width: 360px;
-        height: 360px;
-        border-radius: 50%;
-        border: 8px solid #2F422C;
-        background:
-            radial-gradient(circle at 30% 28%, #FFFFFF 0%, #F5FAF1 30%, #DDEAD5 68%, #C5D8BB 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow:
-            inset 0 12px 22px rgba(255,255,255,0.75),
-            inset 0 -14px 24px rgba(47,66,44,0.10),
-            0 18px 40px rgba(47,66,44,0.12);
-        position: relative;
-    }
-
-    .ball::before {
-        content: "";
-        position: absolute;
-        top: 42px;
-        left: 70px;
-        width: 120px;
-        height: 62px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.65);
-        transform: rotate(-18deg);
+        width: 280px;
+        height: 280px;
     }
 
     .ball-number {
-        font-size: 120px;
-        font-weight: 900;
-        line-height: 1;
-        color: #21351F;
-        letter-spacing: -4px;
-    }
-
-    .rolling .ball {
-        animation: pulseBall 0.55s ease-in-out infinite;
-    }
-
-    .rolling .ball-number {
-        animation: flickerNum 0.18s linear infinite;
-    }
-
-    .prize-box {
-        width: 100%;
-        min-height: 110px;
-        border: 2px solid #B6C3AE;
-        border-radius: 18px;
-        background: #FAFCF8;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 14px 16px;
-        text-align: center;
-    }
-
-    .prize-label {
-        font-size: 16px;
-        font-weight: 800;
-        color: #596956;
-        margin-bottom: 8px;
-        text-transform: uppercase;
+        font-size: 94px;
     }
 
     .prize-value {
-        font-size: 34px;
-        font-weight: 900;
-        line-height: 1.12;
-        color: #2F422C;
-        word-break: keep-all;
-        overflow-wrap: anywhere;
-    }
-
-    .winner-banner {
-        margin-top: 14px;
-        width: 100%;
-        border: 2.5px solid #2F422C;
-        border-radius: 18px;
-        background: linear-gradient(180deg, #EAF5E3 0%, #DCEBD3 100%);
-        padding: 16px 16px;
-        text-align: center;
-    }
-
-    .winner-banner-label {
-        font-size: 15px;
-        font-weight: 800;
-        color: #4F624B;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-    }
-
-    .winner-banner-value {
-        font-size: 30px;
-        font-weight: 900;
-        color: #1F351D;
-        line-height: 1.1;
-    }
-
-    .history-title {
-        font-size: 24px;
-        font-weight: 900;
-        line-height: 1.1;
-        margin-bottom: 12px;
-        text-align: center;
-        color: #2F422C;
-    }
-
-    .history-wrap {
-        height: 600px;
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-
-    .history-card {
-        border: 2px solid #C8D1C2;
-        border-radius: 16px;
-        background: #FBFCFA;
-        padding: 12px 12px;
-        margin-bottom: 10px;
-    }
-
-    .history-number {
         font-size: 28px;
-        font-weight: 900;
-        color: #21351F;
-        margin-bottom: 4px;
     }
-
-    .history-prize {
-        font-size: 16px;
-        font-weight: 800;
-        color: #3E533B;
-        line-height: 1.15;
-        margin-bottom: 6px;
-        word-break: keep-all;
-        overflow-wrap: anywhere;
-    }
-
-    .history-time {
-        font-size: 12px;
-        color: #6D7B69;
-        font-weight: 700;
-    }
-
-    @keyframes pulseBall {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.03); }
-    }
-
-    @keyframes flickerNum {
-        0% { opacity: 1; }
-        50% { opacity: 0.82; }
-        100% { opacity: 1; }
-    }
-
-    @media (max-width: 1200px) {
-        .top-stats {
-            grid-template-columns: 1fr;
-        }
-
-        .draw-layout {
-            grid-template-columns: 1fr;
-        }
-
-        .draw-panel, .side-panel {
-            min-height: auto;
-        }
-
-        .ball {
-            width: 280px;
-            height: 280px;
-        }
-
-        .ball-number {
-            font-size: 94px;
-        }
-
-        .prize-value {
-            font-size: 28px;
-        }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+}
+</style>
+""")
+st.markdown(css, unsafe_allow_html=True)
 
 # =========================================================
 # 상단 타이틀
 # =========================================================
-st.markdown(f'<div class="main-title">{APP_TITLE}</div>', unsafe_allow_html=True)
+st.markdown(
+    f'<div class="main-title">{APP_TITLE}</div>',
+    unsafe_allow_html=True,
+)
 
 total_count = len(number_df)
 already_winner_count = len(
@@ -492,7 +490,7 @@ already_winner_count = len(
 )
 remaining_count = len(remaining_df)
 
-stats_html = f"""
+stats_html = textwrap.dedent(f"""
 <div class="top-stats">
     <div class="stat-card">
         <div class="stat-label">Total Numbers</div>
@@ -507,7 +505,7 @@ stats_html = f"""
         <div class="stat-value">{remaining_count}</div>
     </div>
 </div>
-"""
+""")
 st.markdown(stats_html, unsafe_allow_html=True)
 
 # =========================================================
@@ -521,20 +519,12 @@ with btn_col1:
         st.rerun()
 
 with btn_col2:
-    if st.button(
-        "STOP & DRAW",
-        use_container_width=True,
-        disabled=(not st.session_state.rolling and remaining_df.empty),
-    ):
+    if st.button("STOP & DRAW", use_container_width=True, disabled=(not st.session_state.rolling and remaining_df.empty)):
         stop_and_draw()
         st.rerun()
 
 with btn_col3:
-    if st.button(
-        "UNDO LAST DRAW",
-        use_container_width=True,
-        disabled=(len(st.session_state.history) == 0),
-    ):
+    if st.button("UNDO LAST DRAW", use_container_width=True, disabled=(len(st.session_state.history) == 0)):
         undo_last_draw()
         st.rerun()
 
@@ -556,21 +546,27 @@ display_prize = "Ready to draw" if ball_prize == "" else ball_prize
 history_html = ""
 for item in st.session_state.history:
     history_html += f"""
-    <div class="history-card">
-        <div class="history-number">No. {item['Number']}</div>
-        <div class="history-prize">{item['Prize']}</div>
-        <div class="history-time">{item['Draw Time']}</div>
-    </div>
-    """
+<div class="history-card">
+    <div class="history-number">No. {item['Number']}</div>
+    <div class="history-prize">{item['Prize']}</div>
+    <div class="history-time">{item['Draw Time']}</div>
+</div>
+"""
 
 latest_winner_number = (
     f"No. {st.session_state.last_winner_number}"
     if st.session_state.last_winner_number is not None
     else "-"
 )
-latest_winner_prize = st.session_state.last_winner_prize if st.session_state.last_winner_prize else ""
+latest_winner_prize = (
+    st.session_state.last_winner_prize
+    if st.session_state.last_winner_prize
+    else ""
+)
 
-main_html = f"""
+empty_history_html = '<div style="text-align:center; color:#6D7B69; font-weight:700; padding-top:24px;">No draw history yet</div>'
+
+main_html = textwrap.dedent(f"""
 <div class="draw-layout">
     <div class="draw-panel {rolling_class}">
         <div class="ball-stage">
@@ -587,9 +583,7 @@ main_html = f"""
                 <div class="winner-banner">
                     <div class="winner-banner-label">Latest Winner</div>
                     <div class="winner-banner-value">
-                        {latest_winner_number}
-                        <br>
-                        {latest_winner_prize}
+                        {latest_winner_number}<br>{latest_winner_prize}
                     </div>
                 </div>
             </div>
@@ -599,11 +593,11 @@ main_html = f"""
     <div class="side-panel">
         <div class="history-title">Draw History</div>
         <div class="history-wrap">
-            {history_html if history_html else '<div style="text-align:center; color:#6D7B69; font-weight:700; padding-top:24px;">No draw history yet</div>'}
+            {history_html if history_html else empty_history_html}
         </div>
     </div>
 </div>
-"""
+""")
 st.markdown(main_html, unsafe_allow_html=True)
 
 # =========================================================
