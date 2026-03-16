@@ -230,7 +230,7 @@ st.markdown(
         font-weight: 900;
         line-height: 1.05;
         letter-spacing: -1.2px;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
         color: #2F422C;
     }}
 
@@ -456,17 +456,17 @@ st.write("")
 btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
 
 with btn_col1:
-    if st.button("START ROLLING", use_container_width=True, disabled=remaining_df.empty):
+    if st.button("START", use_container_width=True, disabled=remaining_df.empty):
         start_roll()
         st.rerun()
 
 with btn_col2:
-    if st.button("STOP & DRAW", use_container_width=True):
+    if st.button("DRAW", use_container_width=True):
         stop_and_draw()
         st.rerun()
 
 with btn_col3:
-    if st.button("RESET SESSION", use_container_width=True):
+    if st.button("RESET", use_container_width=True):
         reset_session_draws()
         st.rerun()
 
