@@ -497,3 +497,11 @@ st.markdown(
 )
 
 st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown(
+    "<div style='text-align:center; margin-top:30px; font-size:16px; color:#6B7468;'>"
+    "The rolling ball animation is for visual effect only. "
+    "The actual number is randomly selected when the draw stops."
+    "</div>",
+    unsafe_allow_html=True,
+)
