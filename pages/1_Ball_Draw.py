@@ -190,7 +190,7 @@ def stop_and_draw():
 
     st.session_state.rolling = False
     st.session_state.display_number = winner_number
-    st.session_state.display_prize = winner_prize if winner_prize else "No Prize"
+    st.session_state.display_prize = winner_prize if winner_prize else "FREE MeSO 3D Skin Analysis"
     st.session_state.display_ball_color = winner_ball_color
 
     if winner_number not in st.session_state.session_drawn_numbers:
